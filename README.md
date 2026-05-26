@@ -1,16 +1,14 @@
-# flutter_development
+# 🌙 أذكاري - Adhkari App
 
-A new Flutter project.
+![Under Development](https://img.shields.io/badge/Status-Under%20Development-orange?style=for-the-badge&logo=flutter&logoColor=white)
 
-## Getting Started
+تطبيق إسلامي حديث وخفيف الوزن ومصمم لتذكير المسلم بالأذكار اليومية (الصباح والمساء) عبر نظام إشعارات ذكي ودقيق متوافق مع جميع إصدارات أندرويد الحديثة.
 
-This project is a starting point for a Flutter application.
+## ✨ مميزات التطبيق الحالية
+* 🔔 **إشعارات ذكية:** جدولة تلقائية لأذكار الصباح والمساء بدقة متناهية بناءً على المنطقة الزمنية للجهاز.
+* 🎨 **واجهة نيونية فخمة:** دعم كامل للوضع الداكن (Dark Mode) بخلفية سوداء ملكية وتأثيرات بصرية مريحة للعين.
+* 🚀 **أداء مستقر:** معالجة كاملة لمشاكل صلاحيات الأندرويد وإدارة الذاكرة لكفاءة أعلى.
 
-A few resources to get you started if this is your first Flutter project:
+---
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+📢 **ملاحظة:** التطبيق ما زال في مرحلة التطوير النشط (`Under Development`)، وجاري العمل حالياً على إضافة **مكتبة قرآن كريم صوتية كاملة** تعتمد على البث المباشر عالي الجودة!
