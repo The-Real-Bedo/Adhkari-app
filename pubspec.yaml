@@ -1,0 +1,48 @@
+name: flutter_development
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+2
+
+environment:
+  sdk: ^3.10.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  google_fonts: ^6.1.0
+  shared_preferences: ^2.2.2
+  share_plus: ^10.1.0
+  flutter_local_notifications: ^17.2.4
+  timezone: ^0.9.4
+  flutter_timezone: ^5.0.2 # 👈 لازم تضيف السطر ده هنا بالظبط
+
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+  # ضفنا المكتبة هنا تحت الـ dev_dependencies
+  flutter_launcher_icons: "^0.13.1"
+
+# ده قسم مستقل بذاته بيتحط في آخر الملف خالص جهة الشمال
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/logo.png"
+  # السطرين الجايين هما السر في نعومة الحواف
+  adaptive_icon_background: "#050505" # لون الخلفية الأسود الملكي
+  adaptive_icon_foreground: "assets/icon/logo.png" # صورتك هتتحط في النص بدون تمطيط
+
+flutter:
+  uses-material-design: true
+  # لازم تعرف فلاتر إن عندك فولدر للصور عشان يشوف الأيقونة
+  assets:
+    - assets/icon/
+
+  fonts:
+    - family: ArslanWessam
+      fonts:
+        - asset: assets/fonts/A Arslan Wessam A A Arslan Wessam A.ttf
