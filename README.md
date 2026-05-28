@@ -50,10 +50,3 @@
 
 ---
 
-## 🚀 طريقة تشغيل المشروع محلياً (Installation)
-
-إذا كنت مطوراً وتريد تجربة الكود وتطويره، اتبع الخطوات التالية:
-
-1. **عمل كولون للمستودع:**
-   ```bash
-   git clone [https://github.com/YOUR_USERNAME/YOUR_REPOSITORY_NAME.git](https://github.com/YOUR_USERNAME/YOUR_REPOSITORY_NAME.git)
