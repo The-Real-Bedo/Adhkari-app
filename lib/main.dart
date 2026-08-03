@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'screens/splash_screen.dart';
 import 'services/notification_service.dart';
 
@@ -7,18 +9,40 @@ void main() async {
   await NotificationService.init();
   await NotificationService.syncDailyRemindersFromSettings();
 
-  runApp(const AdhkariApp());
+  // قراءة الثيم المحفوظ قبل بناء الواجهة لمنع ظهور وميض بلون مختلف
+  final prefs = await SharedPreferences.getInstance();
+  final bool initialDarkMode = prefs.getBool('theme_is_dark_mode') ?? true;
+
+  runApp(AdhkariApp(initialDarkMode: initialDarkMode));
 }
+
 class AdhkariApp extends StatefulWidget {
-  const AdhkariApp({super.key});
+  final bool initialDarkMode;
+
+  const AdhkariApp({super.key, required this.initialDarkMode});
 
   @override
   State<AdhkariApp> createState() => _AdhkariAppState();
 }
 
 class _AdhkariAppState extends State<AdhkariApp> {
-  bool _isDarkMode = true;
-  void _toggleTheme() => setState(() => _isDarkMode = !_isDarkMode);
+  late bool _isDarkMode;
+
+  @override
+  void initState() {
+    super.initState();
+    _isDarkMode = widget.initialDarkMode;
+  }
+
+  void _toggleTheme() {
+    setState(() => _isDarkMode = !_isDarkMode);
+    _persistTheme();
+  }
+
+  Future<void> _persistTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('theme_is_dark_mode', _isDarkMode);
+  }
 
   @override
   Widget build(BuildContext context) {

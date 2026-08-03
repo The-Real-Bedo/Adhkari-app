@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'today_screen.dart';
 import 'tasbih_screen.dart';
 import 'azkar_screen.dart';
@@ -21,6 +23,25 @@ class _MainNavigationState extends State<MainNavigation> {
   int _selectedIndex = 0;
   double _fontSize = 18.0;
   bool _showSlider = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFontSize();
+  }
+
+  Future<void> _loadFontSize() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      _fontSize = prefs.getDouble('azkar_font_size') ?? 18.0;
+    });
+  }
+
+  Future<void> _persistFontSize() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('azkar_font_size', _fontSize);
+  }
 
   void _openPage(int index) {
     setState(() {
@@ -75,6 +96,8 @@ class _MainNavigationState extends State<MainNavigation> {
                   max: 35,
                   activeColor: navAccent,
                   onChanged: (val) => setState(() => _fontSize = val),
+                  // الحفظ عند رفع الإصبع فقط، لا مع كل حركة أثناء السحب
+                  onChangeEnd: (_) => _persistFontSize(),
                 ),
               ),
             ),
@@ -82,17 +105,18 @@ class _MainNavigationState extends State<MainNavigation> {
             mini: true,
             heroTag: "themeBtn",
             backgroundColor: themeButtonColor,
+            onPressed: widget.toggleTheme,
             child: Icon(
               widget.isDarkMode ? Icons.wb_sunny : Icons.nightlight_round,
               color: Colors.white,
             ),
-            onPressed: widget.toggleTheme,
           ),
           const SizedBox(height: 10),
           if (_selectedIndex == 2)
             FloatingActionButton(
               heroTag: "fontBtn",
               backgroundColor: _showSlider ? Colors.redAccent : navAccent,
+              onPressed: () => setState(() => _showSlider = !_showSlider),
               child: _showSlider
                   ? const Icon(Icons.close, color: Colors.white)
                   : const Text(
@@ -103,7 +127,6 @@ class _MainNavigationState extends State<MainNavigation> {
                         fontSize: 18,
                       ),
                     ),
-              onPressed: () => setState(() => _showSlider = !_showSlider),
             ),
         ],
       ),

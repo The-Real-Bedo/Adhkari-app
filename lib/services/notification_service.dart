@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart'; // المكتبة الجديدة
 import 'package:shared_preferences/shared_preferences.dart';
@@ -62,6 +61,13 @@ class NotificationService {
     );
 
     const NotificationDetails platformDetails = NotificationDetails(android: androidDetails);
+
+    await _notificationsPlugin.show(
+      99,
+      'تجربة الإشعارات ✅',
+      'الإشعارات تعمل بنجاح على هذا الجهاز',
+      platformDetails,
+    );
   }
 
   static Future<void> scheduleDailyNotification({

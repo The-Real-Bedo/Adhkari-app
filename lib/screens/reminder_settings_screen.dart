@@ -59,6 +59,15 @@ class _ReminderSettingsScreenState extends State<ReminderSettingsScreen> {
     ).showSnackBar(const SnackBar(content: Text('تم حفظ إعدادات التذكير')));
   }
 
+  Future<void> _sendTestNotification() async {
+    await NotificationService.showInstantTest();
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('تم إرسال إشعار تجريبي')),
+    );
+  }
+
   Future<void> _pickTime({required bool isMorning}) async {
     final picked = await showTimePicker(
       context: context,
@@ -123,7 +132,7 @@ class _ReminderSettingsScreenState extends State<ReminderSettingsScreen> {
                   onPickTime: () => _pickTime(isMorning: false),
                 ),
                 const SizedBox(height: 12),
-                _NoteCard(isDark: isDark),
+                _NoteCard(isDark: isDark, onTest: _sendTestNotification),
               ],
             ),
     );
@@ -212,7 +221,11 @@ class _ReminderCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Switch(value: enabled, activeColor: color, onChanged: onToggle),
+              Switch(
+                value: enabled,
+                activeThumbColor: color,
+                onChanged: onToggle,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -266,11 +279,14 @@ class _ReminderCard extends StatelessWidget {
 
 class _NoteCard extends StatelessWidget {
   final bool isDark;
+  final VoidCallback onTest;
 
-  const _NoteCard({required this.isDark});
+  const _NoteCard({required this.isDark, required this.onTest});
 
   @override
   Widget build(BuildContext context) {
+    final Color accent = isDark ? Colors.cyanAccent : const Color(0xFF007C89);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -278,18 +294,38 @@ class _NoteCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
       ),
-      child: Row(
+      child: Column(
         children: [
-          Icon(
-            Icons.info_outline,
-            color: isDark ? Colors.cyanAccent : const Color(0xFF007C89),
+          Row(
+            children: [
+              Icon(Icons.info_outline, color: accent),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'لو التنبيه لم يظهر، تأكد من السماح للتطبيق بالتنبيهات من إعدادات الهاتف.',
+                  textAlign: TextAlign.right,
+                  style: TextStyle(
+                    color: isDark ? Colors.white60 : Colors.black54,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'لو التنبيه لم يظهر، تأكد من السماح للتطبيق بالتنبيهات من إعدادات الهاتف.',
-              textAlign: TextAlign.right,
-              style: TextStyle(color: isDark ? Colors.white60 : Colors.black54),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: onTest,
+              icon: const Icon(Icons.notifications_active_outlined),
+              label: const Text('إرسال إشعار تجريبي الآن'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: accent,
+                side: BorderSide(color: accent.withValues(alpha: 0.5)),
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
             ),
           ),
         ],
