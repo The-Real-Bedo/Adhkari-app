@@ -4,7 +4,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'today_screen.dart';
 import 'tasbih_screen.dart';
 import 'azkar_screen.dart';
-import 'reminder_settings_screen.dart';
+import 'settings_screen.dart';
+import 'quran/reciters_screen.dart';
+import 'quran/quran_player_screen.dart';
+import '../widgets/mini_player.dart';
 
 class MainNavigation extends StatefulWidget {
   final VoidCallback toggleTheme;
@@ -54,81 +57,88 @@ class _MainNavigationState extends State<MainNavigation> {
     final Color navAccent = isDarkMode
         ? Colors.cyanAccent
         : const Color(0xFF00838F);
-    final Color themeButtonColor = isDarkMode
-        ? Colors.orangeAccent
-        : const Color(0xFF263B8F);
 
     final List<Widget> pages = [
       TodayScreen(
         openTasbih: () => _openPage(1),
         openAzkar: () => _openPage(2),
-        openSettings: () => _openPage(3),
+        openQuran: () => _openPage(3),
+        // الإعدادات بقت رقم 4 بعد إضافة تبويب القرآن في رقم 3
+        openSettings: () => _openPage(4),
       ),
       const TasbihHome(),
       AzkarPage(fontSize: _fontSize),
-      const ReminderSettingsScreen(),
+      const RecitersScreen(),
+      // زرار الوضع الليلي بقى جوه الإعدادات بدل ما كان زرار عايم
+      SettingsScreen(toggleTheme: widget.toggleTheme),
     ];
 
     return Scaffold(
-      body: pages[_selectedIndex],
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
+      // الشريط المصغر بيتحط جوه Column مع الصفحة عشان يفضل ظاهر
+      // في كل التبويبات طول ما فيه تلاوة شغالة
+      body: Column(
         children: [
-          if (_showSlider && _selectedIndex == 2)
-            Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: const [
-                  BoxShadow(color: Colors.black26, blurRadius: 10),
-                ],
+          Expanded(child: pages[_selectedIndex]),
+          MiniPlayer(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const QuranPlayerScreen.current(),
               ),
-              height: 200,
-              width: 50,
-              child: RotatedBox(
-                quarterTurns: 3,
-                child: Slider(
-                  value: _fontSize,
-                  min: 14,
-                  max: 35,
-                  activeColor: navAccent,
-                  onChanged: (val) => setState(() => _fontSize = val),
-                  // الحفظ عند رفع الإصبع فقط، لا مع كل حركة أثناء السحب
-                  onChangeEnd: (_) => _persistFontSize(),
-                ),
-              ),
-            ),
-          FloatingActionButton(
-            mini: true,
-            heroTag: "themeBtn",
-            backgroundColor: themeButtonColor,
-            onPressed: widget.toggleTheme,
-            child: Icon(
-              isDarkMode ? Icons.wb_sunny : Icons.nightlight_round,
-              color: Colors.white,
             ),
           ),
-          const SizedBox(height: 10),
-          if (_selectedIndex == 2)
-            FloatingActionButton(
-              heroTag: "fontBtn",
-              backgroundColor: _showSlider ? Colors.redAccent : navAccent,
-              onPressed: () => setState(() => _showSlider = !_showSlider),
-              child: _showSlider
-                  ? const Icon(Icons.close, color: Colors.white)
-                  : const Text(
-                      "A",
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-            ),
         ],
       ),
+      // الزرار العايم بقى لتكبير خط الأذكار بس — زرار الثيم اتنقل للإعدادات.
+      // فبنبنيه فقط في تبويب الأذكار عشان مايظهرش في باقي التبويبات.
+      floatingActionButton: _selectedIndex != 2
+          ? null
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_showSlider)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardColor,
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: const [
+                        BoxShadow(color: Colors.black26, blurRadius: 10),
+                      ],
+                    ),
+                    height: 200,
+                    width: 50,
+                    child: RotatedBox(
+                      quarterTurns: 3,
+                      child: Slider(
+                        value: _fontSize,
+                        min: 14,
+                        max: 35,
+                        activeColor: navAccent,
+                        onChanged: (val) => setState(() => _fontSize = val),
+                        // الحفظ عند رفع الإصبع فقط، لا مع كل حركة أثناء السحب
+                        onChangeEnd: (_) => _persistFontSize(),
+                      ),
+                    ),
+                  ),
+                FloatingActionButton(
+                  heroTag: "fontBtn",
+                  backgroundColor: _showSlider ? Colors.redAccent : navAccent,
+                  onPressed: () => setState(() => _showSlider = !_showSlider),
+                  child: _showSlider
+                      ? const Icon(Icons.close, color: Colors.white)
+                      : const Text(
+                          "A",
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                ),
+              ],
+            ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _openPage,
@@ -145,6 +155,7 @@ class _MainNavigationState extends State<MainNavigation> {
             label: "تسبيح",
           ),
           BottomNavigationBarItem(icon: Icon(Icons.book), label: "أذكار"),
+          BottomNavigationBarItem(icon: Icon(Icons.headphones), label: "قرآن"),
           BottomNavigationBarItem(icon: Icon(Icons.tune), label: "إعدادات"),
         ],
       ),
