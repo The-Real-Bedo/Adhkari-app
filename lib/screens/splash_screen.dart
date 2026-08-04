@@ -7,14 +7,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'main_navigation.dart';
 
 class CustomSplashScreen extends StatefulWidget {
-  final bool isDarkMode;
   final VoidCallback toggleTheme;
 
-  const CustomSplashScreen({
-    super.key,
-    required this.isDarkMode,
-    required this.toggleTheme,
-  });
+  const CustomSplashScreen({super.key, required this.toggleTheme});
 
   @override
   State<CustomSplashScreen> createState() => _CustomSplashScreenState();
@@ -73,10 +68,7 @@ class _CustomSplashScreenState extends State<CustomSplashScreen>
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) =>
-              MainNavigation(
-                isDarkMode: widget.isDarkMode,
-                toggleTheme: widget.toggleTheme,
-              ),
+              MainNavigation(toggleTheme: widget.toggleTheme),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(opacity: animation, child: child);
           },

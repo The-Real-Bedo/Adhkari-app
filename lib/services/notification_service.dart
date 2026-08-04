@@ -50,26 +50,6 @@ class NotificationService {
     }
   }
 
-  // 🎯 دالة لإرسال إشعار فوري للتأكد من عمل المحرك والصلاحيات 100%
-  static Future<void> showInstantTest() async {
-    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-      'instant_channel',
-      'Instant Test Channel',
-      importance: Importance.max,
-      priority: Priority.high,
-      showWhen: true,
-    );
-
-    const NotificationDetails platformDetails = NotificationDetails(android: androidDetails);
-
-    await _notificationsPlugin.show(
-      99,
-      'تجربة الإشعارات ✅',
-      'الإشعارات تعمل بنجاح على هذا الجهاز',
-      platformDetails,
-    );
-  }
-
   static Future<void> scheduleDailyNotification({
     required int id,
     required String title,

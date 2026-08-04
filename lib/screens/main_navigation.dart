@@ -7,13 +7,8 @@ import 'azkar_screen.dart';
 import 'reminder_settings_screen.dart';
 
 class MainNavigation extends StatefulWidget {
-  final bool isDarkMode;
   final VoidCallback toggleTheme;
-  const MainNavigation({
-    super.key,
-    required this.isDarkMode,
-    required this.toggleTheme,
-  });
+  const MainNavigation({super.key, required this.toggleTheme});
 
   @override
   State<MainNavigation> createState() => _MainNavigationState();
@@ -52,10 +47,14 @@ class _MainNavigationState extends State<MainNavigation> {
 
   @override
   Widget build(BuildContext context) {
-    final Color navAccent = widget.isDarkMode
+    // نقرأ الثيم من الـ context مباشرة زي باقي الشاشات، لأن تمريره
+    // كـ parameter كان بيتجمد على قيمة وقت بناء الصفحة ولا يتحدث بعدها
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    final Color navAccent = isDarkMode
         ? Colors.cyanAccent
         : const Color(0xFF00838F);
-    final Color themeButtonColor = widget.isDarkMode
+    final Color themeButtonColor = isDarkMode
         ? Colors.orangeAccent
         : const Color(0xFF263B8F);
 
@@ -107,7 +106,7 @@ class _MainNavigationState extends State<MainNavigation> {
             backgroundColor: themeButtonColor,
             onPressed: widget.toggleTheme,
             child: Icon(
-              widget.isDarkMode ? Icons.wb_sunny : Icons.nightlight_round,
+              isDarkMode ? Icons.wb_sunny : Icons.nightlight_round,
               color: Colors.white,
             ),
           ),
@@ -134,11 +133,11 @@ class _MainNavigationState extends State<MainNavigation> {
         currentIndex: _selectedIndex,
         onTap: _openPage,
         type: BottomNavigationBarType.fixed,
-        backgroundColor: widget.isDarkMode
+        backgroundColor: isDarkMode
             ? const Color(0xFF121212)
             : Colors.white,
         selectedItemColor: navAccent,
-        unselectedItemColor: widget.isDarkMode ? Colors.white24 : Colors.grey,
+        unselectedItemColor: isDarkMode ? Colors.white24 : Colors.grey,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.today), label: "اليوم"),
           BottomNavigationBarItem(

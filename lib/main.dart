@@ -62,10 +62,7 @@ class _AdhkariAppState extends State<AdhkariApp> {
         appBarTheme: const AppBarTheme(backgroundColor: Color(0xFF121212)),
       ),
       themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
-      home: CustomSplashScreen(
-        isDarkMode: _isDarkMode,
-        toggleTheme: _toggleTheme,
-      ),
+      home: CustomSplashScreen(toggleTheme: _toggleTheme),
     );
   }
 }
