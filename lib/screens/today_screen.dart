@@ -1,21 +1,29 @@
 import 'dart:convert';
 
+import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/azkar_data.dart';
 import '../models/zikr_model.dart';
+import '../services/quran_audio_service.dart';
+import '../services/quran_prefs.dart';
+import 'quran/quran_player_screen.dart';
 
 class TodayScreen extends StatefulWidget {
   final VoidCallback openTasbih;
   final VoidCallback openAzkar;
   final VoidCallback openSettings;
 
+  /// بيفتح تبويب القرآن — بيستخدمه كارت "تابع الاستماع"
+  final VoidCallback openQuran;
+
   const TodayScreen({
     super.key,
     required this.openTasbih,
     required this.openAzkar,
     required this.openSettings,
+    required this.openQuran,
   });
 
   @override
@@ -25,10 +33,20 @@ class TodayScreen extends StatefulWidget {
 class _TodayScreenState extends State<TodayScreen> {
   late Future<_TodaySummary> _summaryFuture;
 
+  /// آخر تلاوة كان بيسمعها — بنعرضها في كارت "تابع الاستماع"
+  LastPlayed? _lastPlayed;
+
   @override
   void initState() {
     super.initState();
     _summaryFuture = _loadSummary();
+    _loadLastPlayed();
+  }
+
+  Future<void> _loadLastPlayed() async {
+    final last = await QuranPrefs.lastPlayed();
+    if (!mounted) return;
+    setState(() => _lastPlayed = last);
   }
 
   Future<_TodaySummary> _loadSummary() async {
@@ -123,6 +141,8 @@ class _TodayScreenState extends State<TodayScreen> {
             onRefresh: () async {
               setState(() => _summaryFuture = _loadSummary());
               await _summaryFuture;
+              // آخر تلاوة ممكن تكون اتغيرت وهو بيسمع في تبويب تاني
+              await _loadLastPlayed();
             },
             child: ListView(
               padding: const EdgeInsets.fromLTRB(18, 18, 18, 110),
@@ -133,6 +153,16 @@ class _TodayScreenState extends State<TodayScreen> {
                   isDark: isDark,
                 ),
                 const SizedBox(height: 16),
+
+                // كارت متابعة الاستماع — بيتفرج على الهاندلر مباشرة زي
+                // الشريط المصغر، فلو التلاوة شغالة الاتنين بيتحركوا مع بعض.
+                // ولو مفيش حاجة شغالة بيرجع لآخر تلاوة محفوظة.
+                _ResumeListeningCard(
+                  fallback: _lastPlayed,
+                  onOpenTab: widget.openQuran,
+                  isDark: isDark,
+                ),
+
                 Row(
                   children: [
                     Expanded(
@@ -506,6 +536,284 @@ class _TodaySummary {
       dailyTasbihTarget: 1000,
       streak: 0,
       lastLog: 'لا يوجد نشاط بعد',
+    );
+  }
+}
+
+/// كارت متابعة الاستماع.
+///
+/// بياخد حالته من الهاندلر مباشرة — نفس المصدر اللي الشريط المصغر بيقرا
+/// منه — عشان الاتنين يمشوا مع بعض: لو وقفت من الشريط الكارت بيوقف، ولو
+/// دوست تشغيل من الكارت الشريط بيتحرك، والوقت بيتحرك في الاتنين. قبل كده
+/// الكارت كان بيقرا لقطة محفوظة مرة واحدة في initState فكان بيفضل ثابت.
+///
+/// لو مفيش تلاوة محمّلة في الهاندلر خالص بنرجع لآخر تلاوة محفوظة.
+class _ResumeListeningCard extends StatelessWidget {
+  /// آخر تلاوة محفوظة — للحالة اللي مفيش فيها تشغيل دلوقتي
+  final LastPlayed? fallback;
+
+  /// بيفتح تبويب القرآن. بنستخدمه في الحالة المحفوظة لأن بدء التشغيل
+  /// محتاج بيانات القارئ والرواية، والتبويب هو اللي بيجيبها ويكمّل.
+  final VoidCallback onOpenTab;
+
+  final bool isDark;
+
+  const _ResumeListeningCard({
+    required this.fallback,
+    required this.onOpenTab,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // لو الخدمة فشلت في main مفيش هاندلر نتفرج عليه
+    if (!QuranAudioService.isReady) return _fallbackCard();
+
+    final handler = QuranAudioService.handler;
+
+    return StreamBuilder<MediaItem?>(
+      stream: handler.mediaItem,
+      builder: (context, itemSnapshot) {
+        final item = itemSnapshot.data;
+        if (item == null) return _fallbackCard();
+
+        return StreamBuilder<PlaybackState>(
+          stream: handler.playbackState,
+          builder: (context, stateSnapshot) {
+            final state = stateSnapshot.data;
+            final processing = state?.processingState;
+
+            // وقف خالص؟ نرجع للمحفوظ، بنفس شرط اختفاء الشريط المصغر
+            if (processing == AudioProcessingState.idle) {
+              return _fallbackCard();
+            }
+
+            final playing = state?.playing ?? false;
+            final busy =
+                processing == AudioProcessingState.loading ||
+                processing == AudioProcessingState.buffering;
+
+            return StreamBuilder<Duration>(
+              stream: handler.positionStream,
+              builder: (context, posSnapshot) {
+                return _card(
+                  title: item.title,
+                  subtitle: item.album ?? '',
+                  position: posSnapshot.data ?? Duration.zero,
+                  duration: item.duration ?? Duration.zero,
+                  live: true,
+                  playing: playing,
+                  busy: busy,
+                  // الضغطة بتفتح المشغل الكامل على نفس التلاوة الشغالة
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const QuranPlayerScreen.current(),
+                    ),
+                  ),
+                  onToggle: () => playing ? handler.pause() : handler.play(),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// الحالة المحفوظة — مفيش تلاوة محمّلة في الهاندلر دلوقتي
+  Widget _fallbackCard() {
+    final last = fallback;
+    if (last == null) return const SizedBox.shrink();
+
+    return _card(
+      title: last.surahTitle,
+      subtitle: last.reciterName,
+      position: last.position,
+      duration: last.duration,
+      live: false,
+      playing: false,
+      busy: false,
+      onTap: onOpenTab,
+      onToggle: onOpenTab,
+    );
+  }
+
+  Widget _card({
+    required String title,
+    required String subtitle,
+    required Duration position,
+    required Duration duration,
+    required bool live,
+    required bool playing,
+    required bool busy,
+    required VoidCallback onTap,
+    required VoidCallback onToggle,
+  }) {
+    final accent = isDark ? Colors.cyanAccent : const Color(0xFF00838F);
+
+    // بنحسب النسبة هنا مش من LastPlayed.progress عشان نفس الحساب
+    // يخدم الحالتين: الشغالة دلوقتي والمحفوظة.
+    // toDouble ضرورية لأن clamp بترجع num مش double.
+    final progress = duration.inMilliseconds > 0
+        ? (position.inMilliseconds / duration.inMilliseconds)
+              .clamp(0.0, 1.0)
+              .toDouble()
+        : 0.0;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Directionality(
+        textDirection: TextDirection.rtl,
+        child: Material(
+          color: isDark ? const Color(0xFF121212) : Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(18),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      // في وضع التشغيل الزرار ده بيتحكم في الهاندلر نفسه،
+                      // فبيتغير مع الشريط المصغر والإشعار في نفس اللحظة
+                      _LeadingControl(
+                        accent: accent,
+                        live: live,
+                        playing: playing,
+                        busy: busy,
+                        onToggle: onToggle,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              live ? 'بتسمع دلوقتي' : 'تابع الاستماع',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: accent,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (subtitle.isNotEmpty)
+                              Text(
+                                subtitle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // شريط التقدم بيظهر بس لو عارفين مدة السورة
+                  if (duration.inMilliseconds > 0) ...[
+                    const SizedBox(height: 12),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        minHeight: 5,
+                        backgroundColor: Colors.grey.withValues(alpha: 0.25),
+                        valueColor: AlwaysStoppedAnimation<Color>(accent),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '${_fmt(position)} / ${_fmt(duration)}',
+                      style: const TextStyle(fontSize: 11, color: Colors.grey),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static String _fmt(Duration d) {
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    final h = d.inHours;
+    return h > 0 ? '$h:$m:$s' : '$m:$s';
+  }
+}
+
+/// الدايرة اللي على يمين كارت الاستماع.
+///
+/// في وضع التشغيل بتبقى زرار تشغيل/إيقاف حقيقي بيتحكم في نفس الهاندلر
+/// بتاع الشريط المصغر، عشان أي ضغطة في الاتنين تبان في التاني على طول.
+/// في الوضع المحفوظ بتبقى مجرد أيقونة بتودّي على تبويب القرآن.
+class _LeadingControl extends StatelessWidget {
+  final Color accent;
+  final bool live;
+  final bool playing;
+  final bool busy;
+  final VoidCallback onToggle;
+
+  const _LeadingControl({
+    required this.accent,
+    required this.live,
+    required this.playing,
+    required this.busy,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final circle = Container(
+      width: 44,
+      height: 44,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.15),
+        shape: BoxShape.circle,
+      ),
+      child: busy
+          ? SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.2,
+                color: accent,
+              ),
+            )
+          : Icon(
+              playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+              color: accent,
+              size: 24,
+            ),
+    );
+
+    // وهو بيحمّل مبنخليهوش يضغط، عشان مايبعتش أوامر متضاربة للهاندلر
+    if (!live || busy) return circle;
+
+    return InkWell(
+      onTap: onToggle,
+      customBorder: const CircleBorder(),
+      child: circle,
     );
   }
 }
