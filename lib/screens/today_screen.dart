@@ -5,10 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/azkar_data.dart';
+import '../data/islamic_events.dart';
 import '../models/zikr_model.dart';
+import '../services/hijri_prefs.dart';
 import '../services/quran_audio_service.dart';
 import '../services/quran_prefs.dart';
 import '../theme/app_theme.dart';
+import '../utils/hijri_date.dart';
+import '../widgets/hijri_date_card.dart';
 import 'quran/quran_player_screen.dart';
 
 class TodayScreen extends StatefulWidget {
@@ -151,6 +155,29 @@ class _TodayScreenState extends State<TodayScreen> {
                   openAzkar: widget.openAzkar,
                 ),
                 const SizedBox(height: 16),
+
+                // التاريخ الهجري بيتحسب جوّه الـ builder — حساب صحيح خالص
+                // من غير I/O، فمفيش داعي يعدّي على _TodaySummary. الـ
+                // ValueListenableBuilder هو اللي بيخلي الكارت يتحدّث لحظياً
+                // لما الإزاحة تتغيّر من الإعدادات، لأن التبويبات بتفضل حيّة
+                // و initState مش بيتنده تاني.
+                ValueListenableBuilder<int>(
+                  valueListenable: HijriPrefs.offsetNotifier,
+                  builder: (context, offset, _) {
+                    final now = DateTime.now();
+                    final hijri = HijriDate.fromGregorian(now, offset: offset);
+                    final upcoming = nextEvent(hijri);
+                    return HijriDateCard(
+                      hijri: hijri,
+                      gregorian: now,
+                      nextEvent: upcoming.event,
+                      daysRemaining: upcoming.daysRemaining,
+                      dayInEvent: upcoming.dayInEvent,
+                      onTap: widget.openSettings,
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
 
                 // كارت متابعة الاستماع — بيتفرج على الهاندلر مباشرة زي
                 // الشريط المصغر، فلو التلاوة شغالة الاتنين بيتحركوا مع بعض.

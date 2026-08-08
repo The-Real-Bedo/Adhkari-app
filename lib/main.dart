@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens/splash_screen.dart';
+import 'services/hijri_prefs.dart';
 import 'services/notification_service.dart';
 import 'services/quran_audio_service.dart';
 import 'theme/app_theme.dart';
@@ -21,6 +22,10 @@ void main() async {
   // قراءة الثيم المحفوظ قبل بناء الواجهة لمنع ظهور وميض بلون مختلف
   final prefs = await SharedPreferences.getInstance();
   final bool initialDarkMode = prefs.getBool('theme_is_dark_mode') ?? true;
+
+  // إزاحة التاريخ الهجري كمان بتتقري قبل أول frame عشان الكارت ما يظهرش
+  // بتاريخ غير مظبوط وبعدين يتغيّر قدام المستخدم
+  await HijriPrefs.load();
 
   runApp(AdhkariApp(initialDarkMode: initialDarkMode));
 }

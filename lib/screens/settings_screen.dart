@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/hijri_prefs.dart';
 import '../services/notification_service.dart';
 import '../services/quran_download_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/hijri_date.dart';
 import '../widgets/app_card.dart';
 import 'quran/downloads_screen.dart';
 
@@ -114,6 +116,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 20),
 
+                  // ————— التقويم الهجري —————
+                  const SectionTitle('التقويم الهجري'),
+                  const _HijriOffsetCard(),
+                  const SizedBox(height: 20),
+
                   // ————— التذكير —————
                   const SectionTitle('مواعيد التذكير'),
                   _ReminderCard(
@@ -211,6 +218,93 @@ class _ThemeTile extends StatelessWidget {
         activeThumbColor: iconColor,
         onChanged: (_) => onToggle(),
       ),
+    );
+  }
+}
+
+/// ضبط إزاحة التاريخ الهجري.
+///
+/// التقويم الجدولي ممكن يسبق أو يتأخر يوم عن رؤية الهلال المحلية، فالكارت
+/// ده بيخلي المستخدم يوفّق التاريخ على بلده. المعاينة بتتحدّث فوراً عشان
+/// يشوف بعينه أي إزاحة هي الصح.
+class _HijriOffsetCard extends StatelessWidget {
+  const _HijriOffsetCard();
+
+  Future<void> _change(BuildContext context, int delta) async {
+    final int next = HijriPrefs.offsetNotifier.value + delta;
+    await HijriPrefs.setOffset(next);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('تم حفظ إعدادات التقويم')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+
+    return ValueListenableBuilder<int>(
+      valueListenable: HijriPrefs.offsetNotifier,
+      builder: (context, offset, _) {
+        final hijri = HijriDate.fromGregorian(DateTime.now(), offset: offset);
+
+        return AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'تعديل التاريخ الهجري',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: AppSpace.xs),
+              Text(
+                'لو التاريخ فارق عندك يوم، ظبّطه من هنا.',
+                style: TextStyle(fontSize: 13, color: p.textMuted),
+              ),
+              const SizedBox(height: AppSpace.md),
+              Text(
+                hijri.formatAr(),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: p.primary,
+                ),
+              ),
+              const SizedBox(height: AppSpace.md),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton.outlined(
+                    onPressed: offset > HijriPrefs.minOffset
+                        ? () => _change(context, -1)
+                        : null,
+                    icon: const Icon(Icons.remove),
+                    tooltip: 'يوم أقل',
+                  ),
+                  SizedBox(
+                    width: 64,
+                    child: Text(
+                      offset > 0 ? '+$offset' : '$offset',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  IconButton.outlined(
+                    onPressed: offset < HijriPrefs.maxOffset
+                        ? () => _change(context, 1)
+                        : null,
+                    icon: const Icon(Icons.add),
+                    tooltip: 'يوم أكتر',
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
