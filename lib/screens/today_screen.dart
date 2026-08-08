@@ -8,6 +8,7 @@ import '../data/azkar_data.dart';
 import '../models/zikr_model.dart';
 import '../services/quran_audio_service.dart';
 import '../services/quran_prefs.dart';
+import '../theme/app_theme.dart';
 import 'quran/quran_player_screen.dart';
 
 class TodayScreen extends StatefulWidget {
@@ -111,9 +112,7 @@ class _TodayScreenState extends State<TodayScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final morningColor = isDark ? Colors.orangeAccent : const Color(0xFFC15F00);
-    final eveningColor = isDark ? Colors.cyanAccent : const Color(0xFF007C89);
+    final p = context.palette;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -150,7 +149,6 @@ class _TodayScreenState extends State<TodayScreen> {
                 _HeroPanel(
                   streak: summary.streak,
                   openAzkar: widget.openAzkar,
-                  isDark: isDark,
                 ),
                 const SizedBox(height: 16),
 
@@ -160,7 +158,6 @@ class _TodayScreenState extends State<TodayScreen> {
                 _ResumeListeningCard(
                   fallback: _lastPlayed,
                   onOpenTab: widget.openQuran,
-                  isDark: isDark,
                 ),
 
                 Row(
@@ -170,9 +167,8 @@ class _TodayScreenState extends State<TodayScreen> {
                         title: 'أذكار الصباح',
                         value: summary.morningProgress,
                         icon: Icons.wb_sunny_outlined,
-                        color: morningColor,
+                        color: p.accent,
                         onTap: widget.openAzkar,
-                        isDark: isDark,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -181,9 +177,8 @@ class _TodayScreenState extends State<TodayScreen> {
                         title: 'أذكار المساء',
                         value: summary.eveningProgress,
                         icon: Icons.nights_stay_outlined,
-                        color: eveningColor,
+                        color: p.primary,
                         onTap: widget.openAzkar,
-                        isDark: isDark,
                       ),
                     ),
                   ],
@@ -195,14 +190,12 @@ class _TodayScreenState extends State<TodayScreen> {
                   target: summary.dailyTasbihTarget,
                   progress: tasbihProgress,
                   onTap: widget.openTasbih,
-                  isDark: isDark,
                 ),
                 const SizedBox(height: 12),
                 _InfoStrip(
                   icon: Icons.history,
                   title: 'آخر نشاط',
                   value: summary.lastLog,
-                  isDark: isDark,
                 ),
                 const SizedBox(height: 12),
                 _InfoStrip(
@@ -210,7 +203,6 @@ class _TodayScreenState extends State<TodayScreen> {
                   title: 'التذكيرات',
                   value: 'اضبط مواعيد الصباح والمساء من الإعدادات',
                   onTap: widget.openSettings,
-                  isDark: isDark,
                 ),
               ],
             ),
@@ -224,28 +216,25 @@ class _TodayScreenState extends State<TodayScreen> {
 class _HeroPanel extends StatelessWidget {
   final int streak;
   final VoidCallback openAzkar;
-  final bool isDark;
 
   const _HeroPanel({
     required this.streak,
     required this.openAzkar,
-    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
-          colors: isDark
-              ? [const Color(0xFF171717), const Color(0xFF090909)]
-              : [Colors.white, const Color(0xFFEAF7FF)],
+          colors: [p.surface, p.surfaceAlt],
         ),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: p.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -255,26 +244,23 @@ class _HeroPanel extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: (isDark ? Colors.amber : const Color(0xFFB7791F))
-                      .withValues(alpha: 0.12),
+                  color: p.accentSoft,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  Icons.auto_awesome,
-                  color: isDark ? Colors.amber : const Color(0xFFB7791F),
-                ),
+                child: Icon(Icons.auto_awesome, color: p.accent),
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    const Text(
+                    Text(
                       'ابدأ وردك بهدوء',
                       textAlign: TextAlign.right,
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
+                        color: p.text,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -283,9 +269,7 @@ class _HeroPanel extends StatelessWidget {
                           ? 'أول خطوة اليوم تكفي'
                           : '$streak يوم متتالي',
                       textAlign: TextAlign.right,
-                      style: TextStyle(
-                        color: isDark ? Colors.white60 : Colors.black54,
-                      ),
+                      style: TextStyle(color: p.textMuted),
                     ),
                   ],
                 ),
@@ -295,18 +279,16 @@ class _HeroPanel extends StatelessWidget {
           const SizedBox(height: 18),
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton.icon(
+            child: FilledButton.icon(
               onPressed: openAzkar,
               icon: const Icon(Icons.play_arrow),
               label: const Text('ابدأ وردك'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isDark
-                    ? Colors.cyanAccent
-                    : const Color(0xFF007C89),
-                foregroundColor: isDark ? Colors.black : Colors.white,
+              style: FilledButton.styleFrom(
+                backgroundColor: p.primary,
+                foregroundColor: p.onPrimary,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(AppRadius.card),
                 ),
               ),
             ),
@@ -323,7 +305,6 @@ class _ProgressCard extends StatelessWidget {
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
-  final bool isDark;
 
   const _ProgressCard({
     required this.title,
@@ -331,37 +312,35 @@ class _ProgressCard extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.onTap,
-    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
     final percentage = (value * 100).round();
 
     return InkWell(
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(AppRadius.card),
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF121212) : Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: color.withValues(alpha: isDark ? 0.22 : 0.35),
-          ),
+          color: p.surface,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(color: p.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Icon(icon, color: color),
             const SizedBox(height: 14),
-            Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: p.text)),
             const SizedBox(height: 10),
             LinearProgressIndicator(
               value: value,
               minHeight: 7,
               color: color,
-              backgroundColor: isDark ? Colors.white10 : Colors.black12,
+              backgroundColor: p.border,
             ),
             const SizedBox(height: 8),
             Text(
@@ -381,7 +360,6 @@ class _TasbihGoalCard extends StatelessWidget {
   final int target;
   final double progress;
   final VoidCallback onTap;
-  final bool isDark;
 
   const _TasbihGoalCard({
     required this.count,
@@ -389,33 +367,32 @@ class _TasbihGoalCard extends StatelessWidget {
     required this.target,
     required this.progress,
     required this.onTap,
-    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
-    final accent = isDark ? Colors.cyanAccent : const Color(0xFF007C89);
+    final p = context.palette;
 
     return InkWell(
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(AppRadius.card),
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF121212) : Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: accent.withValues(alpha: 0.28)),
+          color: p.surface,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(color: p.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Row(
               children: [
-                Icon(Icons.fingerprint, color: accent),
+                Icon(Icons.fingerprint, color: p.primary),
                 const Spacer(),
-                const Text(
+                Text(
                   'هدف التسبيح اليومي',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: p.text),
                 ),
               ],
             ),
@@ -423,18 +400,18 @@ class _TasbihGoalCard extends StatelessWidget {
             LinearProgressIndicator(
               value: progress,
               minHeight: 8,
-              color: accent,
-              backgroundColor: isDark ? Colors.white10 : Colors.black12,
+              color: p.primary,
+              backgroundColor: p.border,
             ),
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('الإجمالي: $total'),
+                Text('الإجمالي: $total', style: TextStyle(color: p.text)),
                 Text(
                   '$count / $target',
                   style: TextStyle(
-                    color: accent,
+                    color: p.primary,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -452,33 +429,31 @@ class _InfoStrip extends StatelessWidget {
   final String title;
   final String value;
   final VoidCallback? onTap;
-  final bool isDark;
 
   const _InfoStrip({
     required this.icon,
     required this.title,
     required this.value,
     this.onTap,
-    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
-    final accent = isDark ? Colors.amberAccent : const Color(0xFFB7791F);
+    final p = context.palette;
 
     return InkWell(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(AppRadius.card),
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
+          color: p.surface,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(color: p.border),
         ),
         child: Row(
           children: [
-            Icon(icon, color: accent),
+            Icon(icon, color: p.accent),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -486,7 +461,7 @@ class _InfoStrip extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: TextStyle(fontWeight: FontWeight.bold, color: p.text),
                   ),
                   const SizedBox(height: 5),
                   Text(
@@ -494,9 +469,7 @@ class _InfoStrip extends StatelessWidget {
                     textAlign: TextAlign.right,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: isDark ? Colors.white60 : Colors.black54,
-                    ),
+                    style: TextStyle(color: p.textMuted),
                   ),
                 ],
               ),
@@ -556,18 +529,17 @@ class _ResumeListeningCard extends StatelessWidget {
   /// محتاج بيانات القارئ والرواية، والتبويب هو اللي بيجيبها ويكمّل.
   final VoidCallback onOpenTab;
 
-  final bool isDark;
-
   const _ResumeListeningCard({
     required this.fallback,
     required this.onOpenTab,
-    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
+
     // لو الخدمة فشلت في main مفيش هاندلر نتفرج عليه
-    if (!QuranAudioService.isReady) return _fallbackCard();
+    if (!QuranAudioService.isReady) return _fallbackCard(p);
 
     final handler = QuranAudioService.handler;
 
@@ -575,7 +547,7 @@ class _ResumeListeningCard extends StatelessWidget {
       stream: handler.mediaItem,
       builder: (context, itemSnapshot) {
         final item = itemSnapshot.data;
-        if (item == null) return _fallbackCard();
+        if (item == null) return _fallbackCard(p);
 
         return StreamBuilder<PlaybackState>(
           stream: handler.playbackState,
@@ -585,7 +557,7 @@ class _ResumeListeningCard extends StatelessWidget {
 
             // وقف خالص؟ نرجع للمحفوظ، بنفس شرط اختفاء الشريط المصغر
             if (processing == AudioProcessingState.idle) {
-              return _fallbackCard();
+              return _fallbackCard(p);
             }
 
             final playing = state?.playing ?? false;
@@ -597,6 +569,7 @@ class _ResumeListeningCard extends StatelessWidget {
               stream: handler.positionStream,
               builder: (context, posSnapshot) {
                 return _card(
+                  p: p,
                   title: item.title,
                   subtitle: item.album ?? '',
                   position: posSnapshot.data ?? Duration.zero,
@@ -622,11 +595,12 @@ class _ResumeListeningCard extends StatelessWidget {
   }
 
   /// الحالة المحفوظة — مفيش تلاوة محمّلة في الهاندلر دلوقتي
-  Widget _fallbackCard() {
+  Widget _fallbackCard(AppPalette p) {
     final last = fallback;
     if (last == null) return const SizedBox.shrink();
 
     return _card(
+      p: p,
       title: last.surahTitle,
       subtitle: last.reciterName,
       position: last.position,
@@ -640,6 +614,7 @@ class _ResumeListeningCard extends StatelessWidget {
   }
 
   Widget _card({
+    required AppPalette p,
     required String title,
     required String subtitle,
     required Duration position,
@@ -650,8 +625,6 @@ class _ResumeListeningCard extends StatelessWidget {
     required VoidCallback onTap,
     required VoidCallback onToggle,
   }) {
-    final accent = isDark ? Colors.cyanAccent : const Color(0xFF00838F);
-
     // بنحسب النسبة هنا مش من LastPlayed.progress عشان نفس الحساب
     // يخدم الحالتين: الشغالة دلوقتي والمحفوظة.
     // toDouble ضرورية لأن clamp بترجع num مش double.
@@ -662,17 +635,21 @@ class _ResumeListeningCard extends StatelessWidget {
         : 0.0;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: AppSpace.md),
       child: Directionality(
         textDirection: TextDirection.rtl,
         child: Material(
-          color: isDark ? const Color(0xFF121212) : Colors.white,
-          borderRadius: BorderRadius.circular(18),
+          color: p.surface,
+          borderRadius: BorderRadius.circular(AppRadius.card),
           child: InkWell(
             onTap: onTap,
-            borderRadius: BorderRadius.circular(18),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
+            borderRadius: BorderRadius.circular(AppRadius.card),
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: p.border),
+                borderRadius: BorderRadius.circular(AppRadius.card),
+              ),
+              padding: const EdgeInsets.all(AppSpace.lg),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -681,13 +658,12 @@ class _ResumeListeningCard extends StatelessWidget {
                       // في وضع التشغيل الزرار ده بيتحكم في الهاندلر نفسه،
                       // فبيتغير مع الشريط المصغر والإشعار في نفس اللحظة
                       _LeadingControl(
-                        accent: accent,
                         live: live,
                         playing: playing,
                         busy: busy,
                         onToggle: onToggle,
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: AppSpace.md),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -696,7 +672,7 @@ class _ResumeListeningCard extends StatelessWidget {
                               live ? 'بتسمع دلوقتي' : 'تابع الاستماع',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: accent,
+                                color: p.primary,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -705,9 +681,10 @@ class _ResumeListeningCard extends StatelessWidget {
                               title,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
+                                color: p.text,
                               ),
                             ),
                             if (subtitle.isNotEmpty)
@@ -715,9 +692,9 @@ class _ResumeListeningCard extends StatelessWidget {
                                 subtitle,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey,
+                                  color: p.textMuted,
                                 ),
                               ),
                           ],
@@ -728,20 +705,20 @@ class _ResumeListeningCard extends StatelessWidget {
 
                   // شريط التقدم بيظهر بس لو عارفين مدة السورة
                   if (duration.inMilliseconds > 0) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpace.md),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(4),
                       child: LinearProgressIndicator(
                         value: progress,
                         minHeight: 5,
-                        backgroundColor: Colors.grey.withValues(alpha: 0.25),
-                        valueColor: AlwaysStoppedAnimation<Color>(accent),
+                        backgroundColor: p.border,
+                        valueColor: AlwaysStoppedAnimation<Color>(p.primary),
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: AppSpace.sm),
                     Text(
                       '${_fmt(position)} / ${_fmt(duration)}',
-                      style: const TextStyle(fontSize: 11, color: Colors.grey),
+                      style: TextStyle(fontSize: 11, color: p.textFaint),
                     ),
                   ],
                 ],
@@ -767,14 +744,12 @@ class _ResumeListeningCard extends StatelessWidget {
 /// بتاع الشريط المصغر، عشان أي ضغطة في الاتنين تبان في التاني على طول.
 /// في الوضع المحفوظ بتبقى مجرد أيقونة بتودّي على تبويب القرآن.
 class _LeadingControl extends StatelessWidget {
-  final Color accent;
   final bool live;
   final bool playing;
   final bool busy;
   final VoidCallback onToggle;
 
   const _LeadingControl({
-    required this.accent,
     required this.live,
     required this.playing,
     required this.busy,
@@ -783,12 +758,14 @@ class _LeadingControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
+
     final circle = Container(
       width: 44,
       height: 44,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.15),
+        color: p.primarySoft,
         shape: BoxShape.circle,
       ),
       child: busy
@@ -797,12 +774,12 @@ class _LeadingControl extends StatelessWidget {
               height: 20,
               child: CircularProgressIndicator(
                 strokeWidth: 2.2,
-                color: accent,
+                color: p.primary,
               ),
             )
           : Icon(
               playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
-              color: accent,
+              color: p.primary,
               size: 24,
             ),
     );

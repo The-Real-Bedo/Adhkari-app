@@ -3,12 +3,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/notification_service.dart';
 import '../services/quran_download_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_card.dart';
 import 'quran/downloads_screen.dart';
 
-/// شاشة الإعدادات — بقت مقسومة أقسام: المظهر، التذكير، التلاوات، معلومات.
-///
-/// الوضع الليلي كان زرار عايم فوق كل الشاشات، نقلناه هنا عشان يبقى
-/// مكانه منطقي ومايغطيش على المحتوى.
+/// شاشة الإعدادات — مقسومة أقسام: المظهر، التذكير، التلاوات، معلومات.
 class SettingsScreen extends StatefulWidget {
   final VoidCallback toggleTheme;
 
@@ -25,8 +24,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   TimeOfDay _eveningTime = const TimeOfDay(hour: 17, minute: 0);
   bool _isLoading = true;
 
-  /// حجم التلاوات المحمّلة — بنعرضه في قسم التلاوات
-  int _downloadBytes = 0;
   int _downloadCount = 0;
 
   @override
@@ -58,31 +55,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       final files = await QuranDownloadService.listDownloads();
       if (!mounted) return;
-      setState(() {
-        _downloadCount = files.length;
-        _downloadBytes = files.fold<int>(0, (sum, f) => sum + f.bytes);
-      });
-    } catch (_) {
-      // مش مشكلة، القسم هيعرض صفر
-    }
+      setState(() => _downloadCount = files.length);
+    } catch (_) {}
   }
 
   Future<void> _saveSettings() async {
     final prefs = await SharedPreferences.getInstance();
-
     await prefs.setBool('reminder_morning_enabled', _morningEnabled);
     await prefs.setBool('reminder_evening_enabled', _eveningEnabled);
     await prefs.setInt('reminder_morning_hour', _morningTime.hour);
     await prefs.setInt('reminder_morning_minute', _morningTime.minute);
     await prefs.setInt('reminder_evening_hour', _eveningTime.hour);
     await prefs.setInt('reminder_evening_minute', _eveningTime.minute);
-
     await NotificationService.syncDailyRemindersFromSettings();
-
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('تم حفظ إعدادات التذكير')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('تم حفظ إعدادات التذكير')),
+    );
   }
 
   Future<void> _pickTime({required bool isMorning}) async {
@@ -90,40 +79,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       initialTime: isMorning ? _morningTime : _eveningTime,
     );
-
     if (picked == null) return;
-
     setState(() {
-      if (isMorning) {
-        _morningTime = picked;
-      } else {
-        _eveningTime = picked;
-      }
+      if (isMorning) { _morningTime = picked; } else { _eveningTime = picked; }
     });
     await _saveSettings();
   }
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final morningColor = isDark ? Colors.orangeAccent : const Color(0xFFC15F00);
-    final eveningColor = isDark ? Colors.cyanAccent : const Color(0xFF007C89);
-    final accent = isDark ? Colors.cyanAccent : const Color(0xFF00838F);
+
+    // ألوان التذكير — الصباح ذهبي دافي والمساء زمردي هادي
+    final morningColor = p.accent;
+    final eveningColor = p.primary;
 
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        appBar: AppBar(title: const Text('الإعدادات'), centerTitle: true),
+        appBar: AppBar(title: const Text('الإعدادات')),
         body: _isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? Center(child: CircularProgressIndicator(color: p.primary))
             : ListView(
                 padding: const EdgeInsets.fromLTRB(18, 18, 18, 110),
                 children: [
                   // ————— المظهر —————
-                  const _SectionTitle('المظهر'),
-                  _Card(
-                    isDark: isDark,
+                  const SectionTitle('المظهر'),
+                  AppCard(
                     child: _ThemeTile(
                       isDark: isDark,
                       onToggle: widget.toggleTheme,
@@ -132,7 +115,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 20),
 
                   // ————— التذكير —————
-                  const _SectionTitle('مواعيد التذكير'),
+                  const SectionTitle('مواعيد التذكير'),
                   _ReminderCard(
                     title: 'تذكير أذكار الصباح',
                     subtitle: 'رسالة يومية هادئة لبداية الورد',
@@ -140,7 +123,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     color: morningColor,
                     enabled: _morningEnabled,
                     time: _morningTime,
-                    isDark: isDark,
                     onToggle: (value) async {
                       setState(() => _morningEnabled = value);
                       await _saveSettings();
@@ -155,7 +137,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     color: eveningColor,
                     enabled: _eveningEnabled,
                     time: _eveningTime,
-                    isDark: isDark,
                     onToggle: (value) async {
                       setState(() => _eveningEnabled = value);
                       await _saveSettings();
@@ -165,12 +146,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 20),
 
                   // ————— التلاوات —————
-                  const _SectionTitle('التلاوات'),
-                  _Card(
-                    isDark: isDark,
+                  const SectionTitle('التلاوات'),
+                  AppCard(
                     child: ListTile(
                       contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.download_done, color: accent),
+                      leading: Icon(Icons.download_done, color: p.primary),
                       title: const Text(
                         'التلاوات المحمّلة',
                         style: TextStyle(fontWeight: FontWeight.bold),
@@ -178,8 +158,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       subtitle: Text(
                         _downloadCount == 0
                             ? 'مفيش تلاوات محمّلة'
-                            : '$_downloadCount تلاوة · '
-                                  '${QuranDownloadService.formatBytes(_downloadBytes)}',
+                            : '$_downloadCount تلاوة متاحة بدون إنترنت',
                       ),
                       trailing: const Icon(Icons.chevron_left),
                       onTap: () async {
@@ -189,7 +168,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             builder: (_) => const DownloadsScreen(),
                           ),
                         );
-                        // ممكن يكون مسح حاجة، نحدّث الأرقام
                         await _loadDownloadInfo();
                       },
                     ),
@@ -197,8 +175,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 20),
 
                   // ————— معلومات —————
-                  const _SectionTitle('معلومات'),
-                  _NoteCard(isDark: isDark),
+                  const SectionTitle('معلومات'),
+                  const _NoteCard(),
                 ],
               ),
       ),
@@ -206,53 +184,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 }
 
-/// عنوان قسم صغير فوق كل مجموعة كروت
-class _SectionTitle extends StatelessWidget {
-  final String text;
-
-  const _SectionTitle(this.text);
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Padding(
-      padding: const EdgeInsets.only(right: 4, bottom: 8),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 0.3,
-          color: isDark ? Colors.white38 : Colors.black45,
-        ),
-      ),
-    );
-  }
-}
-
-/// كارت بالشكل الموحّد بتاع الشاشة
-class _Card extends StatelessWidget {
-  final Widget child;
-  final bool isDark;
-
-  const _Card({required this.child, required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF121212) : Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
-      ),
-      child: child,
-    );
-  }
-}
-
-/// سطر تبديل الوضع الليلي/النهاري
 class _ThemeTile extends StatelessWidget {
   final bool isDark;
   final VoidCallback onToggle;
@@ -261,13 +192,14 @@ class _ThemeTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isDark ? Colors.amberAccent : const Color(0xFF263B8F);
+    final p = context.palette;
+    final iconColor = isDark ? p.accent : p.primary;
 
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: Icon(
         isDark ? Icons.dark_mode : Icons.light_mode,
-        color: color,
+        color: iconColor,
       ),
       title: const Text(
         'الوضع الليلي',
@@ -276,8 +208,7 @@ class _ThemeTile extends StatelessWidget {
       subtitle: Text(isDark ? 'مفعّل' : 'مغلق — الوضع النهاري'),
       trailing: Switch(
         value: isDark,
-        activeThumbColor: color,
-        // الـ toggle بيقلب الثيم في main.dart وبيحفظه في SharedPreferences
+        activeThumbColor: iconColor,
         onChanged: (_) => onToggle(),
       ),
     );
@@ -291,7 +222,6 @@ class _ReminderCard extends StatelessWidget {
   final Color color;
   final bool enabled;
   final TimeOfDay time;
-  final bool isDark;
   final ValueChanged<bool> onToggle;
   final VoidCallback onPickTime;
 
@@ -302,48 +232,47 @@ class _ReminderCard extends StatelessWidget {
     required this.color,
     required this.enabled,
     required this.time,
-    required this.isDark,
     required this.onToggle,
     required this.onPickTime,
   });
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF121212) : Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        color: p.surface,
+        borderRadius: AppRadius.cardR,
         border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
       child: Column(
         children: [
           Row(
             children: [
+              // المسار بياخد لون التذكير عشان يتماشى مع الكارت، والزرار
+              // الجوّاه بياخد حبر مقروء فوقه — أبيض على الزمردي وغامق على
+              // الذهبي، بدل أبيض ثابت كان بيختفي فوق الذهبي
               Switch(
                 value: enabled,
-                activeThumbColor: color,
                 onChanged: onToggle,
+                activeThumbColor: inkOnFill(color),
+                activeTrackColor: color,
+                trackOutlineColor: WidgetStateProperty.resolveWith(
+                  (states) => states.contains(WidgetState.selected)
+                      ? color
+                      : p.border,
+                ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        color: isDark ? Colors.white54 : Colors.black54,
-                      ),
-                    ),
+                    Text(subtitle, style: TextStyle(color: p.textMuted)),
                   ],
                 ),
               ),
@@ -362,9 +291,7 @@ class _ReminderCard extends StatelessWidget {
                 foregroundColor: color,
                 side: BorderSide(color: color.withValues(alpha: 0.5)),
                 padding: const EdgeInsets.symmetric(vertical: 13),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: AppRadius.cardR),
               ),
             ),
           ),
@@ -375,30 +302,26 @@ class _ReminderCard extends StatelessWidget {
 }
 
 class _NoteCard extends StatelessWidget {
-  final bool isDark;
-
-  const _NoteCard({required this.isDark});
+  const _NoteCard();
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpace.lg),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
+        color: p.surfaceAlt,
+        borderRadius: AppRadius.cardR,
+        border: Border.all(color: p.border),
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.info_outline,
-            color: isDark ? Colors.cyanAccent : const Color(0xFF007C89),
-          ),
+          Icon(Icons.info_outline, color: p.primary),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               'لو التنبيه لم يظهر، تأكد من السماح للتطبيق بالتنبيهات من إعدادات الهاتف.',
-              style: TextStyle(color: isDark ? Colors.white60 : Colors.black54),
+              style: TextStyle(color: p.textMuted),
             ),
           ),
         ],

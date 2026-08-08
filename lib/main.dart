@@ -3,11 +3,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens/splash_screen.dart';
 import 'services/notification_service.dart';
+import 'services/quran_audio_service.dart';
+import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await NotificationService.init();
   await NotificationService.syncDailyRemindersFromSettings();
+
+  // تهيئة مشغل القرآن مرة واحدة على مستوى التطبيق.
+  try {
+    await QuranAudioService.init();
+  } catch (e) {
+    debugPrint('فشلت تهيئة مشغل القرآن: $e');
+  }
 
   // قراءة الثيم المحفوظ قبل بناء الواجهة لمنع ظهور وميض بلون مختلف
   final prefs = await SharedPreferences.getInstance();
@@ -49,18 +58,8 @@ class _AdhkariAppState extends State<AdhkariApp> {
     return MaterialApp(
       title: 'أذكاري - Adhkari',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.light,
-        scaffoldBackgroundColor: const Color(0xFFE3F2FD),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFFBBDEFB),
-          foregroundColor: Colors.black,
-        ),
-      ),
-      darkTheme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF050505),
-        appBarTheme: const AppBarTheme(backgroundColor: Color(0xFF121212)),
-      ),
+      theme: AppThemeData.light,
+      darkTheme: AppThemeData.dark,
       themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
       home: CustomSplashScreen(toggleTheme: _toggleTheme),
     );

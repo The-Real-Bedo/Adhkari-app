@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../theme/app_theme.dart';
 import 'today_screen.dart';
 import 'tasbih_screen.dart';
 import 'azkar_screen.dart';
@@ -50,32 +51,22 @@ class _MainNavigationState extends State<MainNavigation> {
 
   @override
   Widget build(BuildContext context) {
-    // نقرأ الثيم من الـ context مباشرة زي باقي الشاشات، لأن تمريره
-    // كـ parameter كان بيتجمد على قيمة وقت بناء الصفحة ولا يتحدث بعدها
-    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-    final Color navAccent = isDarkMode
-        ? Colors.cyanAccent
-        : const Color(0xFF00838F);
+    final p = context.palette;
 
     final List<Widget> pages = [
       TodayScreen(
         openTasbih: () => _openPage(1),
         openAzkar: () => _openPage(2),
         openQuran: () => _openPage(3),
-        // الإعدادات بقت رقم 4 بعد إضافة تبويب القرآن في رقم 3
         openSettings: () => _openPage(4),
       ),
       const TasbihHome(),
       AzkarPage(fontSize: _fontSize),
       const RecitersScreen(),
-      // زرار الوضع الليلي بقى جوه الإعدادات بدل ما كان زرار عايم
       SettingsScreen(toggleTheme: widget.toggleTheme),
     ];
 
     return Scaffold(
-      // الشريط المصغر بيتحط جوه Column مع الصفحة عشان يفضل ظاهر
-      // في كل التبويبات طول ما فيه تلاوة شغالة
       body: Column(
         children: [
           Expanded(child: pages[_selectedIndex]),
@@ -89,8 +80,6 @@ class _MainNavigationState extends State<MainNavigation> {
           ),
         ],
       ),
-      // الزرار العايم بقى لتكبير خط الأذكار بس — زرار الثيم اتنقل للإعدادات.
-      // فبنبنيه فقط في تبويب الأذكار عشان مايظهرش في باقي التبويبات.
       floatingActionButton: _selectedIndex != 2
           ? null
           : Column(
@@ -101,11 +90,10 @@ class _MainNavigationState extends State<MainNavigation> {
                     margin: const EdgeInsets.only(bottom: 10),
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).cardColor,
+                      color: p.surface,
                       borderRadius: BorderRadius.circular(30),
-                      boxShadow: const [
-                        BoxShadow(color: Colors.black26, blurRadius: 10),
-                      ],
+                      // حدود بدل الظلال — نفس أسلوب الموقع المرجعي
+                      border: Border.all(color: p.border),
                     ),
                     height: 200,
                     width: 50,
@@ -115,23 +103,24 @@ class _MainNavigationState extends State<MainNavigation> {
                         value: _fontSize,
                         min: 14,
                         max: 35,
-                        activeColor: navAccent,
+                        activeColor: p.primary,
+                        inactiveColor: p.textFaint,
                         onChanged: (val) => setState(() => _fontSize = val),
-                        // الحفظ عند رفع الإصبع فقط، لا مع كل حركة أثناء السحب
                         onChangeEnd: (_) => _persistFontSize(),
                       ),
                     ),
                   ),
                 FloatingActionButton(
                   heroTag: "fontBtn",
-                  backgroundColor: _showSlider ? Colors.redAccent : navAccent,
+                  backgroundColor:
+                      _showSlider ? p.danger : p.primary,
                   onPressed: () => setState(() => _showSlider = !_showSlider),
                   child: _showSlider
-                      ? const Icon(Icons.close, color: Colors.white)
-                      : const Text(
+                      ? Icon(Icons.close, color: p.onPrimary)
+                      : Text(
                           "A",
                           style: TextStyle(
-                            color: Colors.black,
+                            color: p.onPrimary,
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
                           ),
@@ -143,11 +132,10 @@ class _MainNavigationState extends State<MainNavigation> {
         currentIndex: _selectedIndex,
         onTap: _openPage,
         type: BottomNavigationBarType.fixed,
-        backgroundColor: isDarkMode
-            ? const Color(0xFF121212)
-            : Colors.white,
-        selectedItemColor: navAccent,
-        unselectedItemColor: isDarkMode ? Colors.white24 : Colors.grey,
+        backgroundColor: p.surface,
+        selectedItemColor: p.primary,
+        unselectedItemColor: p.textFaint,
+        elevation: 0,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.today), label: "اليوم"),
           BottomNavigationBarItem(

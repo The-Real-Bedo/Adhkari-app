@@ -4,6 +4,8 @@ import '../../models/quran_models.dart';
 import '../../services/quran_api_service.dart';
 import '../../services/quran_download_service.dart';
 import '../../services/quran_prefs.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/app_card.dart';
 import 'quran_player_screen.dart';
 import 'surah_list_screen.dart';
 
@@ -64,8 +66,6 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
       _loading = false;
     });
   }
-
-  int get _totalBytes => _files.fold<int>(0, (sum, f) => sum + f.bytes);
 
   Reciter? _reciterById(int id) {
     for (final r in _reciters) {
@@ -177,35 +177,39 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
   }
 
   Future<Moshaf?> _pickMoshaf(Reciter reciter) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final p = context.palette;
 
     return showModalBottomSheet<Moshaf>(
       context: context,
-      backgroundColor: isDark ? const Color(0xFF121212) : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      backgroundColor: p.surface,
       builder: (context) => Directionality(
         textDirection: TextDirection.rtl,
         child: SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Padding(
-                padding: EdgeInsets.all(16),
+              Padding(
+                padding: const EdgeInsets.all(AppSpace.lg),
                 child: Text(
                   'اختر الرواية',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: p.text,
+                  ),
                 ),
               ),
               ...reciter.moshaf.map(
                 (m) => ListTile(
-                  title: Text(m.name),
-                  subtitle: Text('${m.surahList.length} سورة'),
+                  title: Text(m.name, style: TextStyle(color: p.text)),
+                  subtitle: Text(
+                    '${m.surahList.length} سورة',
+                    style: TextStyle(color: p.textMuted),
+                  ),
                   onTap: () => Navigator.pop(context, m),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpace.sm),
             ],
           ),
         ),
@@ -232,8 +236,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
         child: AlertDialog(
           title: const Text('مسح كل التحميلات'),
           content: Text(
-            'هيتم مسح ${_files.length} ملف بحجم '
-            '${QuranDownloadService.formatBytes(_totalBytes)}. '
+            'هيتم مسح ${_files.length} سورة. '
             'هتحتاج إنترنت عشان تسمعهم تاني.',
           ),
           actions: [
@@ -243,9 +246,9 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
             ),
             TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text(
+              child: Text(
                 'مسح الكل',
-                style: TextStyle(color: Colors.redAccent),
+                style: TextStyle(color: context.palette.danger),
               ),
             ),
           ],
@@ -285,8 +288,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final accent = isDark ? Colors.cyanAccent : const Color(0xFF00838F);
+    final p = context.palette;
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -295,7 +297,6 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
         child: Scaffold(
           appBar: AppBar(
             title: const Text('مكتبتي'),
-            centerTitle: true,
             actions: [
               if (_files.isNotEmpty)
                 IconButton(
@@ -304,22 +305,19 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                   onPressed: _deleteAll,
                 ),
             ],
-            bottom: TabBar(
-              indicatorColor: accent,
-              labelColor: accent,
-              unselectedLabelColor: Colors.grey,
-              tabs: const [
+            bottom: const TabBar(
+              tabs: [
                 Tab(icon: Icon(Icons.download_done), text: 'المحمّلة'),
                 Tab(icon: Icon(Icons.star), text: 'المفضلة'),
               ],
             ),
           ),
           body: _loading
-              ? Center(child: CircularProgressIndicator(color: accent))
+              ? Center(child: CircularProgressIndicator(color: p.primary))
               : TabBarView(
                   children: [
-                    _buildDownloads(isDark, accent),
-                    _buildFavourites(isDark, accent),
+                    _buildDownloads(p),
+                    _buildFavourites(p),
                   ],
                 ),
         ),
@@ -329,9 +327,9 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
 
   // ————— تبويب المحمّلة —————
 
-  Widget _buildDownloads(bool isDark, Color accent) {
+  Widget _buildDownloads(AppPalette p) {
     if (_files.isEmpty) {
-      return const _EmptyState(
+      return const EmptyState(
         icon: Icons.download_outlined,
         title: 'مفيش تلاوات محمّلة',
         hint: 'اضغط على أيقونة التحميل جنب أي سورة عشان تسمعها بدون إنترنت',
@@ -347,35 +345,35 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
     final reciterIds = byReciter.keys.toList();
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpace.md, AppSpace.md, AppSpace.md, AppSpace.xl,
+      ),
       children: [
         _StorageSummary(
-          totalLabel: QuranDownloadService.formatBytes(_totalBytes),
-          countLabel: '${_files.length} سورة محمّلة',
-          accent: accent,
+          countLabel: '${_files.length} سورة',
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpace.sm),
 
         for (final reciterId in reciterIds) ...[
           Padding(
             padding: const EdgeInsets.fromLTRB(6, 14, 6, 6),
             child: Row(
               children: [
-                Icon(Icons.record_voice_over, size: 16, color: accent),
+                Icon(Icons.record_voice_over, size: 16, color: p.primary),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     _reciterById(reciterId)?.name ?? 'قارئ #$reciterId',
                     style: TextStyle(
                       fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: accent,
+                      fontWeight: FontWeight.w700,
+                      color: p.primary,
                     ),
                   ),
                 ),
                 Text(
                   '${byReciter[reciterId]!.length} سورة',
-                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                  style: TextStyle(fontSize: 11, color: p.textFaint),
                 ),
               ],
             ),
@@ -383,9 +381,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
           for (final file in byReciter[reciterId]!)
             _DownloadTile(
               title: 'سورة ${_surahNames[file.surahId] ?? file.surahId}',
-              subtitle: QuranDownloadService.formatBytes(file.bytes),
-              isDark: isDark,
-              accent: accent,
+              subtitle: 'متاحة بدون إنترنت',
               onPlay: () => _playDownloaded(file),
               onDelete: () => _deleteOne(file),
             ),
@@ -396,9 +392,9 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
 
   // ————— تبويب المفضلة —————
 
-  Widget _buildFavourites(bool isDark, Color accent) {
+  Widget _buildFavourites(AppPalette p) {
     if (_favReciters.isEmpty && _favSurahs.isEmpty) {
-      return const _EmptyState(
+      return const EmptyState(
         icon: Icons.star_border,
         title: 'مفيش مفضلة لسه',
         hint: 'اضغط على النجمة جنب أي قارئ أو سورة عشان تلاقيهم هنا بسرعة',
@@ -413,81 +409,75 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
     final favSurahIds = _favSurahs.toList()..sort();
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpace.md, AppSpace.md, AppSpace.md, AppSpace.xl,
+      ),
       children: [
         if (favReciterList.isNotEmpty) ...[
-          const _FavSectionTitle('القراء المفضلون'),
+          const SectionTitle('القراء المفضلون'),
           for (final reciter in favReciterList)
             Card(
-              margin: const EdgeInsets.symmetric(vertical: 4),
-              color: isDark ? const Color(0xFF121212) : Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
+              margin: const EdgeInsets.symmetric(vertical: AppSpace.xs),
               child: ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: accent.withValues(alpha: 0.15),
-                  child: Icon(Icons.record_voice_over, color: accent),
+                  backgroundColor: p.primarySoft,
+                  child: Icon(Icons.record_voice_over, color: p.primary),
                 ),
                 title: Text(
                   reciter.name,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 subtitle: Text(
                   reciter.moshaf.length == 1
                       ? reciter.moshaf.first.name
                       : '${reciter.moshaf.length} روايات',
-                  style: const TextStyle(fontSize: 12),
+                  style: TextStyle(fontSize: 12, color: p.textMuted),
                 ),
                 trailing: IconButton(
-                  icon: const Icon(Icons.star, color: Colors.amber),
+                  icon: Icon(Icons.star, color: p.accent),
                   tooltip: 'شيل من المفضلة',
                   onPressed: () => _unfavReciter(reciter.id),
                 ),
                 onTap: () => _openReciter(reciter),
               ),
             ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpace.md),
         ],
 
         if (favSurahIds.isNotEmpty) ...[
-          const _FavSectionTitle('السور المفضلة'),
+          const SectionTitle('السور المفضلة'),
           for (final surahId in favSurahIds)
             Card(
-              margin: const EdgeInsets.symmetric(vertical: 4),
-              color: isDark ? const Color(0xFF121212) : Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
+              margin: const EdgeInsets.symmetric(vertical: AppSpace.xs),
               child: ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: accent.withValues(alpha: 0.15),
+                  backgroundColor: p.primarySoft,
                   child: Text(
                     '$surahId',
                     style: TextStyle(
-                      color: accent,
-                      fontWeight: FontWeight.bold,
+                      color: p.primary,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
                 title: Text(
                   'سورة ${_surahNames[surahId] ?? surahId}',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 subtitle: Text(
                   _surahById(surahId)?.typeLabel ?? '',
-                  style: const TextStyle(fontSize: 12),
+                  style: TextStyle(fontSize: 12, color: p.textMuted),
                 ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      icon: Icon(Icons.play_circle_fill, color: accent),
+                      icon: Icon(Icons.play_circle_fill, color: p.primary),
                       tooltip: 'تشغيل',
                       onPressed: () => _playFavouriteSurah(surahId),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.star, color: Colors.amber),
+                      icon: Icon(Icons.star, color: p.accent),
                       tooltip: 'شيل من المفضلة',
                       onPressed: () => _unfavSurah(surahId),
                     ),
@@ -502,41 +492,39 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
   }
 }
 
-/// كارت ملخص المساحة المستخدمة
+/// كارت ملخص المكتبة — عدد السور بس. الحجم بيتعرض قبل التحميل عشان
+/// المستخدم يعرف هياكل قد إيه من الباقة، وبعد ما ينزل مبقاش يهم.
 class _StorageSummary extends StatelessWidget {
-  final String totalLabel;
   final String countLabel;
-  final Color accent;
 
-  const _StorageSummary({
-    required this.totalLabel,
-    required this.countLabel,
-    required this.accent,
-  });
+  const _StorageSummary({required this.countLabel});
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpace.lg),
       decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(16),
+        color: p.primarySoft,
+        borderRadius: AppRadius.cardR,
+        border: Border.all(color: p.border),
       ),
       child: Column(
         children: [
           Text(
-            totalLabel,
+            countLabel,
             style: TextStyle(
               fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: accent,
+              fontWeight: FontWeight.w700,
+              color: p.primary,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpace.xs),
           Text(
-            countLabel,
-            style: const TextStyle(fontSize: 13, color: Colors.grey),
+            'متاحة بدون إنترنت',
+            style: TextStyle(fontSize: 13, color: p.textMuted),
           ),
         ],
       ),
@@ -548,110 +536,48 @@ class _StorageSummary extends StatelessWidget {
 class _DownloadTile extends StatelessWidget {
   final String title;
   final String subtitle;
-  final bool isDark;
-  final Color accent;
   final VoidCallback onPlay;
   final VoidCallback onDelete;
 
   const _DownloadTile({
     required this.title,
     required this.subtitle,
-    required this.isDark,
-    required this.accent,
     required this.onPlay,
     required this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
+
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 3),
-      color: isDark ? const Color(0xFF121212) : Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       child: ListTile(
-        leading: const Icon(Icons.offline_pin, color: Colors.green),
+        leading: Icon(Icons.offline_pin, color: p.success),
         title: Text(
           title,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
         ),
-        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+        subtitle: Text(
+          subtitle,
+          style: TextStyle(fontSize: 12, color: p.textMuted),
+        ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              icon: Icon(Icons.play_circle_fill, color: accent),
+              icon: Icon(Icons.play_circle_fill, color: p.primary),
               tooltip: 'تشغيل',
               onPressed: onPlay,
             ),
             IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+              icon: Icon(Icons.delete_outline, color: p.danger),
               tooltip: 'مسح',
               onPressed: onDelete,
             ),
           ],
         ),
         onTap: onPlay,
-      ),
-    );
-  }
-}
-
-class _FavSectionTitle extends StatelessWidget {
-  final String text;
-
-  const _FavSectionTitle(this.text);
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(6, 8, 6, 6),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.bold,
-          color: isDark ? Colors.white38 : Colors.black45,
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String hint;
-
-  const _EmptyState({
-    required this.icon,
-    required this.title,
-    required this.hint,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 56, color: Colors.grey),
-            const SizedBox(height: 14),
-            Text(
-              title,
-              style: const TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              hint,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 13, color: Colors.grey),
-            ),
-          ],
-        ),
       ),
     );
   }

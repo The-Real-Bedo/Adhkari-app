@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/notification_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_card.dart';
 
 class ReminderSettingsScreen extends StatefulWidget {
   const ReminderSettingsScreen({super.key});
@@ -79,51 +81,52 @@ class _ReminderSettingsScreenState extends State<ReminderSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final morningColor = isDark ? Colors.orangeAccent : const Color(0xFFC15F00);
-    final eveningColor = isDark ? Colors.cyanAccent : const Color(0xFF007C89);
+    final p = context.palette;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: p.bg,
       appBar: AppBar(title: const Text('الإعدادات'), centerTitle: true),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator(color: p.primary))
           : ListView(
-              padding: const EdgeInsets.fromLTRB(18, 18, 18, 110),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpace.lg,
+                AppSpace.lg,
+                AppSpace.lg,
+                110,
+              ),
               children: [
-                _SettingsHeader(isDark: isDark),
-                const SizedBox(height: 16),
+                const _SettingsHeader(),
+                const SizedBox(height: AppSpace.lg),
                 _ReminderCard(
                   title: 'تذكير أذكار الصباح',
                   subtitle: 'رسالة يومية هادئة لبداية الورد',
                   icon: Icons.wb_sunny_outlined,
-                  color: morningColor,
+                  color: p.accent,
                   enabled: _morningEnabled,
                   time: _morningTime,
-                  isDark: isDark,
                   onToggle: (value) async {
                     setState(() => _morningEnabled = value);
                     await _saveSettings();
                   },
                   onPickTime: () => _pickTime(isMorning: true),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpace.md),
                 _ReminderCard(
                   title: 'تذكير أذكار المساء',
                   subtitle: 'تنبيه يومي قبل نهاية اليوم',
                   icon: Icons.nights_stay_outlined,
-                  color: eveningColor,
+                  color: p.primary,
                   enabled: _eveningEnabled,
                   time: _eveningTime,
-                  isDark: isDark,
                   onToggle: (value) async {
                     setState(() => _eveningEnabled = value);
                     await _saveSettings();
                   },
                   onPickTime: () => _pickTime(isMorning: false),
                 ),
-                const SizedBox(height: 12),
-                _NoteCard(isDark: isDark),
+                const SizedBox(height: AppSpace.md),
+                const _NoteCard(),
               ],
             ),
     );
@@ -131,41 +134,35 @@ class _ReminderSettingsScreenState extends State<ReminderSettingsScreen> {
 }
 
 class _SettingsHeader extends StatelessWidget {
-  final bool isDark;
-
-  const _SettingsHeader({required this.isDark});
+  const _SettingsHeader();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF121212) : Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
-      ),
+    final p = context.palette;
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpace.lg),
+      margin: EdgeInsets.zero,
       child: Row(
         children: [
-          Icon(
-            Icons.notifications_active,
-            color: isDark ? Colors.amberAccent : const Color(0xFFB7791F),
-          ),
-          const SizedBox(width: 12),
+          Icon(Icons.notifications_active, color: p.accent),
+          const SizedBox(width: AppSpace.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                const Text(
+                Text(
                   'مواعيد التذكير',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: p.text,
+                  ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: AppSpace.xs),
                 Text(
                   'اختر وقت الصباح والمساء من داخل التطبيق',
                   textAlign: TextAlign.right,
-                  style: TextStyle(
-                    color: isDark ? Colors.white60 : Colors.black54,
-                  ),
+                  style: TextStyle(color: p.textMuted),
                 ),
               ],
             ),
@@ -183,7 +180,6 @@ class _ReminderCard extends StatelessWidget {
   final Color color;
   final bool enabled;
   final TimeOfDay time;
-  final bool isDark;
   final ValueChanged<bool> onToggle;
   final VoidCallback onPickTime;
 
@@ -194,19 +190,19 @@ class _ReminderCard extends StatelessWidget {
     required this.color,
     required this.enabled,
     required this.time,
-    required this.isDark,
     required this.onToggle,
     required this.onPickTime,
   });
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpace.lg),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF121212) : Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: color.withValues(alpha: 0.25)),
+        color: p.surface,
+        borderRadius: AppRadius.cardR,
+        border: Border.all(color: p.border),
       ),
       child: Column(
         children: [
@@ -225,27 +221,26 @@ class _ReminderCard extends StatelessWidget {
                     Text(
                       title,
                       textAlign: TextAlign.right,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
+                        color: p.text,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSpace.xs),
                     Text(
                       subtitle,
                       textAlign: TextAlign.right,
-                      style: TextStyle(
-                        color: isDark ? Colors.white54 : Colors.black54,
-                      ),
+                      style: TextStyle(color: p.textMuted),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpace.md),
               Icon(icon, color: color),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpace.md),
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
@@ -254,10 +249,10 @@ class _ReminderCard extends StatelessWidget {
               label: Text(time.format(context)),
               style: OutlinedButton.styleFrom(
                 foregroundColor: color,
-                side: BorderSide(color: color.withValues(alpha: 0.5)),
+                side: BorderSide(color: p.border),
                 padding: const EdgeInsets.symmetric(vertical: 13),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(AppRadius.chip),
                 ),
               ),
             ),
@@ -269,31 +264,27 @@ class _ReminderCard extends StatelessWidget {
 }
 
 class _NoteCard extends StatelessWidget {
-  final bool isDark;
-
-  const _NoteCard({required this.isDark});
+  const _NoteCard();
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpace.lg),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
+        color: p.surfaceAlt,
+        borderRadius: AppRadius.cardR,
+        border: Border.all(color: p.border),
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.info_outline,
-            color: isDark ? Colors.cyanAccent : const Color(0xFF007C89),
-          ),
-          const SizedBox(width: 12),
+          Icon(Icons.info_outline, color: p.primary),
+          const SizedBox(width: AppSpace.md),
           Expanded(
             child: Text(
               'لو التنبيه لم يظهر، تأكد من السماح للتطبيق بالتنبيهات من إعدادات الهاتف.',
               textAlign: TextAlign.right,
-              style: TextStyle(color: isDark ? Colors.white60 : Colors.black54),
+              style: TextStyle(color: p.textMuted),
             ),
           ),
         ],

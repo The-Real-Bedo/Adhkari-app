@@ -1,41 +1,39 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
+
+/// بطاقة إحصائية صغيرة في شاشة التسبيح — تصميم مسطّح بحدود بدل الظلال
 class TasbihStatItem extends StatelessWidget {
   final String label;
   final String value;
   final Color color;
-  final bool isDark;
 
   const TasbihStatItem({
     super.key,
     required this.label,
     required this.value,
     required this.color,
-    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
     return Container(
       width: 104,
-      padding: const EdgeInsets.symmetric(vertical: 15),
+      padding: const EdgeInsets.symmetric(vertical: AppSpace.md),
       decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.04)
-            : const Color(0xFFEEEEEE),
-        borderRadius: BorderRadius.circular(20),
+        color: p.surface,
+        borderRadius: BorderRadius.circular(AppRadius.chip),
+        border: Border.all(color: p.border),
       ),
       child: Column(
         children: [
           Text(
             label,
-            style: TextStyle(
-              color: isDark ? Colors.white38 : Colors.grey[700],
-              fontSize: 13,
-            ),
+            style: TextStyle(color: p.textMuted, fontSize: 12),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 5),
+          const SizedBox(height: AppSpace.xs),
           Text(
             value,
             style: TextStyle(

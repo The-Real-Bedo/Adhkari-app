@@ -4,7 +4,88 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../theme/app_theme.dart';
+import '../widgets/app_card.dart';
 import '../widgets/tasbih_stat_item.dart';
+
+/// ألوان الأذكار — نغمات هادية بدل ألوان ماتيريال الفاقعة.
+///
+/// الأذكار المحفوظة عند المستخدم بتحمل ألوانها القديمة، فـ[calmFor]
+/// بتحوّلها لأقرب نغمة من اللوحة الجديدة من غير ما نضيّع بياناته.
+class ZikrColors {
+  ZikrColors._();
+
+  static const Color emerald = Color(0xFF0F6B4F);
+  static const Color teal = Color(0xFF16706B);
+  static const Color olive = Color(0xFF5C6B3C);
+  static const Color gold = Color(0xFF9A7B1F);
+  static const Color terracotta = Color(0xFFA35543);
+  static const Color slate = Color(0xFF3F5A6B);
+  static const Color plum = Color(0xFF6B4360);
+  static const Color brown = Color(0xFF6E5138);
+
+  static const List<Color> all = [
+    emerald,
+    teal,
+    olive,
+    gold,
+    terracotta,
+    slate,
+    plum,
+    brown,
+  ];
+
+  static const Map<int, Color> _legacy = {
+    0xFF448AFF: slate, // blueAccent
+    0xFF2196F3: slate, // blue
+    0xFF03A9F4: teal, // lightBlue
+    0xFF00BCD4: teal, // cyan
+    0xFF18FFFF: teal, // cyanAccent
+    0xFF4CAF50: emerald, // green
+    0xFF69F0AE: emerald, // greenAccent
+    0xFF009688: teal, // teal
+    0xFFF44336: terracotta, // red
+    0xFFFF5252: terracotta, // redAccent
+    0xFFFFAB40: gold, // orangeAccent
+    0xFFFFC107: gold, // amber
+    0xFFCDDC39: olive, // lime
+    0xFFFF5722: terracotta, // deepOrange
+    0xFF3F51B5: slate, // indigo
+    0xFF673AB7: plum, // deepPurple
+    0xFFE91E63: plum, // pink
+    0xFF795548: brown, // brown
+  };
+
+  static Color calmFor(Color color) =>
+      _legacy[color.toARGB32()] ?? color;
+
+  /// نسخة أفتح من كل نغمة للوضع الليلي.
+  ///
+  /// النغمات اللي فوق مختارة عشان تتقرا على سطح أبيض، فعشان كده الزمردي
+  /// الغامق ده كان بيختفي تقريبًا على كارت غامق — عداد بـ ٧٠ نقطة بلون
+  /// #0F6B4F على #1A201E مش بيبان. بنخزّن اللون الأصلي زي ما هو (عشان
+  /// بيانات المستخدم ماتتغيّرش) وبنفتّحه وقت العرض بس.
+  static const Map<int, Color> _nightTone = {
+    0xFF0F6B4F: Color(0xFF52B892), // emerald
+    0xFF16706B: Color(0xFF4FB8B2), // teal
+    0xFF5C6B3C: Color(0xFFA6B878), // olive
+    0xFF9A7B1F: Color(0xFFD9B75A), // gold
+    0xFFA35543: Color(0xFFE0917D), // terracotta
+    0xFF3F5A6B: Color(0xFF93B0C4), // slate
+    0xFF6B4360: Color(0xFFC294B7), // plum
+    0xFF6E5138: Color(0xFFC4A488), // brown
+  };
+
+  /// اللون الجاهز للعرض — بيمرّ على تحويل القديم الأول وبعدين يفتّح في الليل
+  static Color visible(Color color, Brightness brightness) {
+    final calm = calmFor(color);
+    if (brightness != Brightness.dark) return calm;
+    return _nightTone[calm.toARGB32()] ?? calm;
+  }
+
+  /// حبر مقروء فوق أي نغمة — [inkOnFill] من نظام التصميم
+  static Color inkOn(Color fill) => inkOnFill(fill);
+}
 
 class TasbihHome extends StatefulWidget {
   const TasbihHome({super.key});
@@ -30,84 +111,88 @@ class _TasbihHomeState extends State<TasbihHome>
   late AnimationController _celebrationController;
   bool _showCelebration = false;
   String _currentCelebrationMessage = "";
-  Color _currentCelebrationColor = Colors.blue;
+  Color _currentCelebrationColor = ZikrColors.emerald;
   bool _showTip = true;
 
   List<Map<String, dynamic>> _azkar = [
     {
       'text': "سُبْحَانَ اللَّهِ",
-      'color': Colors.blueAccent,
+      'color': ZikrColors.emerald,
       'isCustom': false,
     },
-    {'text': "الْحَمْدُ لِلَّهِ", 'color': Colors.green, 'isCustom': false},
+    {
+      'text': "الْحَمْدُ لِلَّهِ",
+      'color': ZikrColors.teal,
+      'isCustom': false,
+    },
     {
       'text': "لَا إِلٰهَ إِلَّا اللَّهُ",
-      'color': Colors.redAccent,
+      'color': ZikrColors.terracotta,
       'isCustom': false,
     },
     {
       'text': "اللَّهُ أَكْبَرُ",
-      'color': Colors.orangeAccent,
+      'color': ZikrColors.gold,
       'isCustom': false,
     },
     {
       'text': "لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّه",
-      'color': Colors.indigo,
+      'color': ZikrColors.slate,
       'isCustom': false,
     },
     {
       'text': "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ",
-      'color': Colors.lightBlue,
+      'color': ZikrColors.teal,
       'isCustom': false,
     },
     {
       'text': "سُبْحَانَ اللَّهِ الْعَظِيم",
-      'color': Colors.teal,
+      'color': ZikrColors.olive,
       'isCustom': false,
     },
     {
       'text': "أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ",
-      'color': Colors.deepPurple,
+      'color': ZikrColors.plum,
       'isCustom': false,
     },
     {
       'text':
           "لَا إِلٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ",
-      'color': Colors.red,
+      'color': ZikrColors.terracotta,
       'isCustom': false,
     },
     {
       'text':
           "حَسْبِيَ اللَّهُ لَا إِلٰهَ إِلَّا هُوَ عَلَيْهِ تَوَكَّلْتُ وَهُوَ رَبُّ الْعَرْشِ الْعَظِيمِ",
-      'color': Colors.amber,
+      'color': ZikrColors.gold,
       'isCustom': false,
     },
     {
       'text':
           "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ عَدَدَ خَلْقِهِ، وَرِضَا نَفْسِهِ، وَزِنَةَ عَرْشِهِ، وَمِدَادَ كَلِمَاتِهِ",
-      'color': Colors.cyan,
+      'color': ZikrColors.teal,
       'isCustom': false,
     },
     {
       'text':
           "لَا إِلٰهَ إِلَّا أَنْتَ سُبْحَانَكَ إِنِّي كُنْتُ مِنَ الظَّالِمِينَ",
-      'color': Colors.greenAccent,
+      'color': ZikrColors.emerald,
       'isCustom': false,
     },
     {
       'text': "يَا حَيُّ يَا قَيُّومُ بِرَحْمَتِكَ أَسْتَغِيثُ",
-      'color': Colors.blue,
+      'color': ZikrColors.slate,
       'isCustom': false,
     },
     {
       'text':
           "اللَّهُمَّ اغْفِرْ لِي وَلِوَالِدَيَّ وَلِلْمُؤْمِنِينَ وَالْمُؤْمِنَاتِ",
-      'color': Colors.brown,
+      'color': ZikrColors.brown,
       'isCustom': false,
     },
     {
       'text': "اللَّهُمَّ صَلِّ وَسَلِّمْ وَبَارِكْ عَلَى نَبِيِّنَا مُحَمَّد",
-      'color': Colors.pink,
+      'color': ZikrColors.plum,
       'isCustom': false,
     },
   ];
@@ -169,7 +254,9 @@ class _TasbihHomeState extends State<TasbihHome>
           _azkar = decoded.map((e) {
             return {
               'text': e['text'],
-              'color': Color(e['color']),
+              // الأذكار المحفوظة من النسخة القديمة ألوانها فاقعة،
+              // فبنحوّلها لأقرب لون هادي بدل ما نمسح اختيار المستخدم
+              'color': ZikrColors.calmFor(Color(e['color'])),
               'isCustom': e['isCustom'] ?? false,
             };
           }).toList();
@@ -210,7 +297,7 @@ class _TasbihHomeState extends State<TasbihHome>
     List<Map<String, dynamic>> azkarToSave = _azkar.map((e) {
       return {
         'text': e['text'],
-        'color': (e['color'] as Color).value,
+        'color': (e['color'] as Color).toARGB32(),
         'isCustom': e['isCustom'],
       };
     }).toList();
@@ -249,7 +336,7 @@ class _TasbihHomeState extends State<TasbihHome>
     ];
     _currentCelebrationMessage =
         messages[DateTime.now().millisecond % messages.length];
-    _currentCelebrationColor = _azkar[_index]['color'];
+    _currentCelebrationColor = _currentZikrColor;
 
     setState(() => _showCelebration = true);
     _celebrationController.forward(from: 0);
@@ -304,35 +391,17 @@ class _TasbihHomeState extends State<TasbihHome>
   // جديد: إضافة ذكر مخصص
   void _showAddCustomZikr() {
     String newZikr = '';
-    Color selectedColor = Colors.blueAccent;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final accent = isDark ? Colors.cyanAccent : const Color(0xFF007C89);
+    Color selectedColor = ZikrColors.emerald;
+    final p = context.palette;
 
-    final List<Color> availableColors = [
-      Colors.blueAccent,
-      Colors.green,
-      Colors.redAccent,
-      Colors.orangeAccent,
-      Colors.indigo,
-      Colors.lightBlue,
-      Colors.teal,
-      Colors.deepPurple,
-      Colors.red,
-      Colors.amber,
-      Colors.cyan,
-      Colors.greenAccent,
-      Colors.pink,
-      Colors.brown,
-      Colors.lime,
-      Colors.deepOrange,
-    ];
+    const List<Color> availableColors = ZikrColors.all;
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(AppRadius.card),
           ),
           title: const Text("إضافة ذكر جديد", textAlign: TextAlign.right),
           content: SingleChildScrollView(
@@ -350,9 +419,12 @@ class _TasbihHomeState extends State<TasbihHome>
                   onChanged: (value) => newZikr = value,
                 ),
                 const SizedBox(height: 20),
-                const Text(
+                Text(
                   "اختر اللون:",
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: p.text,
+                  ),
                 ),
                 const SizedBox(height: 10),
                 Wrap(
@@ -360,32 +432,27 @@ class _TasbihHomeState extends State<TasbihHome>
                   runSpacing: 8,
                   children: availableColors.map((color) {
                     bool isSelected = color == selectedColor;
+                    // بنخزّن النغمة الأصلية وبنعرض نسختها الليلية بس، عشان
+                    // الدواير الغامقة ماتختفيش على خلفية الحوار الغامقة
+                    final swatch = ZikrColors.visible(
+                      color,
+                      Theme.of(context).brightness,
+                    );
                     return GestureDetector(
                       onTap: () => setDialogState(() => selectedColor = color),
                       child: Container(
                         width: 45,
                         height: 45,
                         decoration: BoxDecoration(
-                          color: color,
+                          color: swatch,
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: isSelected
-                                ? Colors.white
-                                : Colors.transparent,
-                            width: 3,
+                            color: isSelected ? p.text : p.border,
+                            width: isSelected ? 3 : 1,
                           ),
-                          boxShadow: isSelected
-                              ? [
-                                  BoxShadow(
-                                    color: color.withOpacity(0.6),
-                                    blurRadius: 10,
-                                    spreadRadius: 2,
-                                  ),
-                                ]
-                              : [],
                         ),
                         child: isSelected
-                            ? const Icon(Icons.check, color: Colors.white)
+                            ? Icon(Icons.check, color: ZikrColors.inkOn(swatch))
                             : null,
                       ),
                     );
@@ -399,10 +466,10 @@ class _TasbihHomeState extends State<TasbihHome>
               onPressed: () => Navigator.pop(context),
               child: const Text("إلغاء"),
             ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: accent,
-                foregroundColor: isDark ? Colors.black : Colors.white,
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: p.primary,
+                foregroundColor: p.onPrimary,
               ),
               onPressed: () {
                 if (newZikr.trim().isNotEmpty) {
@@ -445,7 +512,7 @@ class _TasbihHomeState extends State<TasbihHome>
   }
 
   void _showActivityLog() {
-    bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final p = context.palette;
 
     showModalBottomSheet(
       context: context,
@@ -454,28 +521,34 @@ class _TasbihHomeState extends State<TasbihHome>
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.85,
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1a1a1a) : Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+          color: p.surface,
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppRadius.card),
+          ),
+          border: Border.all(color: p.border),
         ),
         child: Column(
           children: [
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: isDark
-                    ? Colors.white.withOpacity(0.05)
-                    : const Color(0xFFF0F0F0),
+                color: p.surfaceAlt,
                 borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(25),
+                  top: Radius.circular(AppRadius.card),
                 ),
+                border: Border(bottom: BorderSide(color: p.border)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const SizedBox(width: 48),
-                  const Text(
+                  Text(
                     "سجل الطاعات",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: p.text,
+                    ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close),
@@ -487,33 +560,10 @@ class _TasbihHomeState extends State<TasbihHome>
 
             Expanded(
               child: _activityLog.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.history,
-                            size: 80,
-                            color: Colors.grey[400],
-                          ),
-                          const SizedBox(height: 20),
-                          Text(
-                            "لا يوجد سجل بعد",
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            "ابدأ بالتسبيح لرؤية السجل هنا",
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[500],
-                            ),
-                          ),
-                        ],
-                      ),
+                  ? const EmptyState(
+                      icon: Icons.history,
+                      title: 'لا يوجد سجل بعد',
+                      hint: 'ابدأ بالتسبيح لرؤية السجل هنا',
                     )
                   : ListView.builder(
                       padding: const EdgeInsets.all(20),
@@ -530,30 +580,9 @@ class _TasbihHomeState extends State<TasbihHome>
                           margin: const EdgeInsets.only(bottom: 15),
                           padding: const EdgeInsets.all(18),
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: isDark
-                                  ? [
-                                      const Color(0xFF1a1a1a),
-                                      const Color(0xFF0f0f0f),
-                                    ]
-                                  : [Colors.white, const Color(0xFFFAFAFA)],
-                            ),
-                            borderRadius: BorderRadius.circular(15),
-                            border: Border.all(
-                              color: isDark
-                                  ? Colors.white.withOpacity(0.05)
-                                  : const Color(0xFFE0E0E0),
-                              width: 1,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: isDark
-                                    ? Colors.black.withValues(alpha: 0.3)
-                                    : Colors.black.withValues(alpha: 0.03),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
+                            color: p.surface,
+                            borderRadius: BorderRadius.circular(AppRadius.card),
+                            border: Border.all(color: p.border),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
@@ -568,31 +597,23 @@ class _TasbihHomeState extends State<TasbihHome>
                                       vertical: 4,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: isDark
-                                          ? Colors.greenAccent.withValues(
-                                              alpha: 0.1,
-                                            )
-                                          : const Color(
-                                              0xFF2E7D32,
-                                            ).withValues(alpha: 0.10),
-                                      borderRadius: BorderRadius.circular(8),
+                                      color: p.primarySoft,
+                                      borderRadius: BorderRadius.circular(
+                                        AppRadius.small,
+                                      ),
                                     ),
                                     child: Row(
                                       children: [
                                         Icon(
                                           Icons.check_circle_outline,
                                           size: 14,
-                                          color: isDark
-                                              ? Colors.greenAccent
-                                              : const Color(0xFF2E7D32),
+                                          color: p.success,
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
                                           "أتممت ${log['count']} مرة",
                                           style: TextStyle(
-                                            color: isDark
-                                                ? Colors.greenAccent
-                                                : const Color(0xFF2E7D32),
+                                            color: p.success,
                                             fontWeight: FontWeight.bold,
                                             fontSize: 12,
                                           ),
@@ -604,20 +625,13 @@ class _TasbihHomeState extends State<TasbihHome>
                                     "$dateStr | $timeStr",
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: isDark
-                                          ? Colors.white38
-                                          : Colors.black54,
+                                      color: p.textFaint,
                                     ),
                                   ),
                                 ],
                               ),
 
-                              Divider(
-                                height: 20,
-                                color: isDark
-                                    ? Colors.white10
-                                    : const Color(0xFFE0E0E0),
-                              ),
+                              Divider(height: 20, color: p.border),
 
                               SizedBox(
                                 width: double.infinity,
@@ -626,12 +640,10 @@ class _TasbihHomeState extends State<TasbihHome>
                                   textAlign: TextAlign.right,
                                   softWrap: true,
                                   overflow: TextOverflow.visible,
-                                  style: TextStyle(
+                                  style: QuranTextStyle.amiri(
+                                    color: p.text,
                                     fontSize: 18,
                                     fontWeight: FontWeight.w600,
-                                    color: isDark
-                                        ? Colors.white
-                                        : const Color(0xFF212121),
                                     height: 1.6,
                                   ),
                                 ),
@@ -654,7 +666,9 @@ class _TasbihHomeState extends State<TasbihHome>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.card),
+        ),
         title: const Text("إنجاز اليوم", textAlign: TextAlign.right),
         content: Text(
           "أتممت هدف التسبيح اليومي: $_dailyTarget مرة. بارك الله فيك.",
@@ -677,15 +691,16 @@ class _TasbihHomeState extends State<TasbihHome>
     String selectedStyle = _counterStyle;
     bool soundEnabled = _soundEnabled;
     bool hapticEnabled = _hapticEnabled;
-    bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final settingsAccent = isDark ? Colors.cyanAccent : const Color(0xFF007C89);
+    final p = context.palette;
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: isDark ? const Color(0xFF121212) : Colors.white,
+      backgroundColor: p.surface,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppRadius.card),
+        ),
       ),
       builder: (context) => StatefulBuilder(
         builder: (context, setSheetState) {
@@ -707,19 +722,23 @@ class _TasbihHomeState extends State<TasbihHome>
                       onPressed: () => Navigator.pop(context),
                     ),
                     const Spacer(),
-                    const Text(
+                    Text(
                       "إعدادات التسبيح",
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
+                        color: p.text,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 14),
-                const Text(
+                Text(
                   "شكل العداد",
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: p.text,
+                  ),
                 ),
                 const SizedBox(height: 10),
                 Wrap(
@@ -742,7 +761,7 @@ class _TasbihHomeState extends State<TasbihHome>
                 const SizedBox(height: 18),
                 SwitchListTile(
                   value: soundEnabled,
-                  activeColor: settingsAccent,
+                  activeThumbColor: p.primary,
                   title: const Text(
                     "صوت خفيف عند الضغط",
                     textAlign: TextAlign.right,
@@ -752,7 +771,7 @@ class _TasbihHomeState extends State<TasbihHome>
                 ),
                 SwitchListTile(
                   value: hapticEnabled,
-                  activeColor: settingsAccent,
+                  activeThumbColor: p.primary,
                   title: const Text(
                     "اهتزاز عند الضغط",
                     textAlign: TextAlign.right,
@@ -768,14 +787,14 @@ class _TasbihHomeState extends State<TasbihHome>
                   decoration: InputDecoration(
                     labelText: "هدف التسبيح اليومي",
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(AppRadius.chip),
                     ),
                   ),
                 ),
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton(
+                  child: FilledButton(
                     onPressed: () {
                       final customTarget = int.tryParse(
                         targetController.text.trim(),
@@ -792,12 +811,12 @@ class _TasbihHomeState extends State<TasbihHome>
                       _saveData();
                       Navigator.pop(context);
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: settingsAccent,
-                      foregroundColor: isDark ? Colors.black : Colors.white,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: p.primary,
+                      foregroundColor: p.onPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(AppRadius.chip),
                       ),
                     ),
                     child: const Text("حفظ"),
@@ -818,62 +837,30 @@ class _TasbihHomeState extends State<TasbihHome>
     ValueChanged<String> onSelected,
   ) {
     final bool selected = selectedStyle == value;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final accent = isDark ? Colors.cyanAccent : const Color(0xFF007C89);
+    final p = context.palette;
     return ChoiceChip(
       label: Text(label),
       selected: selected,
-      selectedColor: accent,
+      selectedColor: p.primary,
       labelStyle: TextStyle(
-        color: selected ? (isDark ? Colors.black : Colors.white) : null,
+        color: selected ? p.onPrimary : p.text,
         fontWeight: selected ? FontWeight.bold : FontWeight.normal,
       ),
       onSelected: (_) => onSelected(value),
     );
   }
 
-  Color _readableColor(Color color, bool isDark) {
-    if (isDark) return color;
-
-    if (color == Colors.cyanAccent ||
-        color == Colors.cyan ||
-        color == Colors.lightBlue) {
-      return const Color(0xFF007C89);
-    }
-    if (color == Colors.greenAccent || color == Colors.green) {
-      return const Color(0xFF2E7D32);
-    }
-    if (color == Colors.orangeAccent ||
-        color == Colors.amber ||
-        color == Colors.lime) {
-      return const Color(0xFFC15F00);
-    }
-    if (color == Colors.blueAccent || color == Colors.blue) {
-      return const Color(0xFF1565C0);
-    }
-    if (color == Colors.redAccent || color == Colors.red) {
-      return const Color(0xFFC62828);
-    }
-    if (color == Colors.pink) {
-      return const Color(0xFFAD1457);
-    }
-    if (color == Colors.teal) {
-      return const Color(0xFF00796B);
-    }
-    if (color == Colors.deepPurple) {
-      return const Color(0xFF5E35B1);
-    }
-    if (color == Colors.indigo) {
-      return const Color(0xFF3949AB);
-    }
-
-    return color;
-  }
+  /// لون الذكر الحالي جاهز للعرض — [ZikrColors.visible] بتغطّي الألوان
+  /// القديمة المحفوظة وكمان بتفتّح النغمة في الوضع الليلي
+  Color get _currentZikrColor => ZikrColors.visible(
+        _azkar[_index]['color'] as Color,
+        Theme.of(context).brightness,
+      );
 
   void _showTargetPicker() {
-    TextEditingController customController = TextEditingController();
-    bool isDark = Theme.of(context).brightness == Brightness.dark;
-    Color currentColor = _azkar[_index]['color'];
+    final TextEditingController customController = TextEditingController();
+    final p = context.palette;
+    final Color currentColor = _currentZikrColor;
 
     showDialog(
       context: context,
@@ -881,153 +868,80 @@ class _TasbihHomeState extends State<TasbihHome>
         backgroundColor: Colors.transparent,
         child: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topRight,
-              end: Alignment.bottomLeft,
-              colors: isDark
-                  ? [const Color(0xFF1a1a1a), const Color(0xFF0d0d0d)]
-                  : [Colors.white, const Color(0xFFF5F5F5)],
-            ),
-            borderRadius: BorderRadius.circular(25),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.05),
-              width: 1.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: isDark
-                    ? Colors.black.withOpacity(0.5)
-                    : Colors.black.withOpacity(0.1),
-                blurRadius: 30,
-                spreadRadius: 0,
-                offset: const Offset(0, 10),
-              ),
-            ],
+            color: p.surface,
+            borderRadius: AppRadius.cardR,
+            border: Border.all(color: p.border),
           ),
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(AppSpace.lg),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: isDark
-                          ? [
-                              currentColor.withOpacity(0.15),
-                              currentColor.withOpacity(0.05),
-                            ]
-                          : [
-                              currentColor.withOpacity(0.08),
-                              currentColor.withOpacity(0.03),
-                            ],
-                    ),
+                    color: p.surfaceAlt,
                     borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(23),
-                      topRight: Radius.circular(23),
+                      topLeft: Radius.circular(AppRadius.card),
+                      topRight: Radius.circular(AppRadius.card),
                     ),
-                    border: Border(
-                      bottom: BorderSide(
-                        color: currentColor.withOpacity(0.2),
-                        width: 1,
-                      ),
-                    ),
+                    border: Border(bottom: BorderSide(color: p.border)),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: currentColor.withOpacity(0.15),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.flag_rounded,
-                          color: currentColor,
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
+                      Icon(Icons.flag_rounded, color: currentColor, size: 22),
+                      const SizedBox(width: AppSpace.md),
                       Text(
                         "تحديد الهدف",
                         style: TextStyle(
-                          fontSize: 20,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.black87,
+                          color: p.text,
                         ),
                       ),
                     ],
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(AppSpace.lg),
                   child: Column(
                     children: [
-                      _buildQuickOption(
-                        " مــ33ــرّة",
-                        33,
-                        currentColor,
-                        isDark,
-                      ),
-                      const SizedBox(height: 12),
-                      _buildQuickOption(
-                        " مــ100ــرّة",
-                        100,
-                        currentColor,
-                        isDark,
-                      ),
-                      const SizedBox(height: 12),
-                      _buildQuickOption(
-                        " مــ500ــرّة",
-                        500,
-                        currentColor,
-                        isDark,
-                      ),
-                      const SizedBox(height: 12),
-                      _buildQuickOption(
-                        " مــ1000ــرّة",
-                        1000,
-                        currentColor,
-                        isDark,
-                      ),
-                      const SizedBox(height: 20),
+                      _buildQuickOption(p, " مــ33ــرّة", 33, currentColor),
+                      const SizedBox(height: AppSpace.md),
+                      _buildQuickOption(p, " مــ100ــرّة", 100, currentColor),
+                      const SizedBox(height: AppSpace.md),
+                      _buildQuickOption(p, " مــ500ــرّة", 500, currentColor),
+                      const SizedBox(height: AppSpace.md),
+                      _buildQuickOption(p, " مــ1000ــرّة", 1000, currentColor),
+                      const SizedBox(height: AppSpace.xl),
                       Row(
                         children: [
-                          Expanded(
-                            child: Divider(
-                              color: currentColor.withOpacity(0.3),
-                            ),
-                          ),
+                          Expanded(child: Divider(color: p.border)),
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 15),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpace.lg,
+                            ),
                             child: Text(
                               "أو",
                               style: TextStyle(
-                                color: isDark ? Colors.white38 : Colors.black38,
+                                color: p.textFaint,
                                 fontSize: 14,
                               ),
                             ),
                           ),
-                          Expanded(
-                            child: Divider(
-                              color: currentColor.withOpacity(0.3),
-                            ),
-                          ),
+                          Expanded(child: Divider(color: p.border)),
                         ],
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: AppSpace.xl),
                       Text(
                         "أدخل عدد مخصص",
                         style: TextStyle(
-                          color: isDark ? Colors.white70 : Colors.black87,
-                          fontSize: 16,
+                          color: p.textMuted,
+                          fontSize: 15,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 15),
+                      const SizedBox(height: AppSpace.md),
                       TextField(
                         controller: customController,
                         keyboardType: TextInputType.number,
@@ -1039,33 +953,24 @@ class _TasbihHomeState extends State<TasbihHome>
                         ),
                         decoration: InputDecoration(
                           hintText: "مثال: 50",
-                          hintStyle: TextStyle(
-                            color: isDark ? Colors.white24 : Colors.black26,
-                          ),
+                          hintStyle: TextStyle(color: p.textFaint),
                           filled: true,
-                          fillColor: isDark
-                              ? Colors.white.withOpacity(0.05)
-                              : const Color(0xFFF5F5F5),
+                          fillColor: p.surfaceAlt,
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(15),
-                            borderSide: BorderSide.none,
+                            borderRadius: BorderRadius.circular(AppRadius.chip),
+                            borderSide: BorderSide(color: p.border),
                           ),
                           enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(15),
-                            borderSide: BorderSide(
-                              color: currentColor.withOpacity(0.2),
-                            ),
+                            borderRadius: BorderRadius.circular(AppRadius.chip),
+                            borderSide: BorderSide(color: p.border),
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(15),
-                            borderSide: BorderSide(
-                              color: currentColor,
-                              width: 2,
-                            ),
+                            borderRadius: BorderRadius.circular(AppRadius.chip),
+                            borderSide: BorderSide(color: currentColor),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: AppSpace.xl),
                       Row(
                         children: [
                           Expanded(
@@ -1073,50 +978,52 @@ class _TasbihHomeState extends State<TasbihHome>
                               onPressed: () => Navigator.pop(context),
                               style: TextButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(
-                                  vertical: 15,
+                                  vertical: 14,
                                 ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.chip,
+                                  ),
                                 ),
                               ),
                               child: Text(
                                 "إلغاء",
                                 style: TextStyle(
-                                  color: isDark
-                                      ? Colors.white54
-                                      : Colors.black54,
-                                  fontSize: 16,
+                                  color: p.textMuted,
+                                  fontSize: 15,
                                 ),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: AppSpace.md),
                           Expanded(
-                            child: ElevatedButton(
+                            child: FilledButton(
                               onPressed: () {
-                                int? custom = int.tryParse(
+                                final int? custom = int.tryParse(
                                   customController.text,
                                 );
                                 if (custom != null && custom > 0) {
                                   _updateTarget(custom);
                                 }
                               },
-                              style: ElevatedButton.styleFrom(
+                              style: FilledButton.styleFrom(
                                 backgroundColor: currentColor,
+                                foregroundColor:
+                                    ZikrColors.inkOn(currentColor),
                                 padding: const EdgeInsets.symmetric(
-                                  vertical: 15,
+                                  vertical: 14,
                                 ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.chip,
+                                  ),
                                 ),
-                                elevation: 0,
                               ),
                               child: const Text(
                                 "تأكيد",
                                 style: TextStyle(
-                                  fontSize: 16,
+                                  fontSize: 15,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white,
                                 ),
                               ),
                             ),
@@ -1134,55 +1041,37 @@ class _TasbihHomeState extends State<TasbihHome>
     );
   }
 
-  Widget _buildQuickOption(String label, int value, Color color, bool isDark) {
-    bool isSelected = _target == value;
+  Widget _buildQuickOption(AppPalette p, String label, int value, Color color) {
+    final bool isSelected = _target == value;
     return GestureDetector(
       onTap: () => _updateTarget(value),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpace.lg,
+          vertical: AppSpace.lg,
+        ),
         decoration: BoxDecoration(
-          color: isSelected
-              ? color.withOpacity(0.15)
-              : (isDark
-                    ? Colors.white.withOpacity(0.03)
-                    : const Color(0xFFF8F8F8)),
-          borderRadius: BorderRadius.circular(15),
+          color: isSelected ? color.withValues(alpha: 0.08) : p.surfaceAlt,
+          borderRadius: BorderRadius.circular(AppRadius.chip),
           border: Border.all(
-            color: isSelected
-                ? color.withOpacity(0.5)
-                : (isDark
-                      ? Colors.white.withOpacity(0.08)
-                      : Colors.black.withOpacity(0.08)),
-            width: isSelected ? 2 : 1,
+            color: isSelected ? color : p.border,
+            width: isSelected ? 1.5 : 1,
           ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Container(
-              padding: const EdgeInsets.all(2),
-              decoration: isSelected
-                  ? BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: color.withOpacity(0.2),
-                    )
-                  : null,
-              child: Icon(
-                isSelected ? Icons.check_circle_rounded : Icons.circle_outlined,
-                color: isSelected
-                    ? color
-                    : (isDark ? Colors.white30 : Colors.black26),
-                size: 24,
-              ),
+            Icon(
+              isSelected ? Icons.check_circle_rounded : Icons.circle_outlined,
+              color: isSelected ? color : p.textFaint,
+              size: 22,
             ),
             Text(
               label,
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 17,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected
-                    ? color
-                    : (isDark ? Colors.white70 : Colors.black87),
+                color: isSelected ? color : p.text,
               ),
             ),
           ],
@@ -1201,37 +1090,42 @@ class _TasbihHomeState extends State<TasbihHome>
   }
 
   void _showZikrPicker() {
-    bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final accent = isDark ? Colors.cyanAccent : const Color(0xFF007C89);
+    final p = context.palette;
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: isDark ? const Color(0xFF121212) : Colors.white,
+      backgroundColor: p.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.card)),
       ),
       builder: (context) => Column(
         children: [
           // جديد: زر إضافة ذكر
           Container(
-            padding: const EdgeInsets.all(15),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpace.lg,
+              vertical: AppSpace.md,
+            ),
             decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withOpacity(0.05)
-                  : const Color(0xFFF0F0F0),
+              color: p.surfaceAlt,
               borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(25),
+                top: Radius.circular(AppRadius.card),
               ),
+              border: Border(bottom: BorderSide(color: p.border)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   "الأذكار المتاحة",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: p.text,
+                  ),
                 ),
                 IconButton(
-                  icon: Icon(Icons.add_circle, color: accent, size: 28),
+                  icon: Icon(Icons.add_circle, color: p.primary, size: 26),
                   onPressed: () {
                     Navigator.pop(context);
                     _showAddCustomZikr();
@@ -1242,25 +1136,28 @@ class _TasbihHomeState extends State<TasbihHome>
           ),
           Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 10),
+              padding: const EdgeInsets.symmetric(vertical: AppSpace.sm),
               itemCount: _azkar.length,
               itemBuilder: (context, i) {
-                bool isCustom = _azkar[i]['isCustom'] == true;
+                final bool isCustom = _azkar[i]['isCustom'] == true;
                 return ListTile(
                   title: Text(
                     _azkar[i]['text'],
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: _readableColor(_azkar[i]['color'], isDark),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                    style: QuranTextStyle.amiri(
+                      color: ZikrColors.visible(
+                        _azkar[i]['color'] as Color,
+                        Theme.of(context).brightness,
+                      ),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 17,
                     ),
                   ),
                   trailing: isCustom
                       ? IconButton(
-                          icon: const Icon(
-                            Icons.delete,
-                            color: Colors.red,
+                          icon: Icon(
+                            Icons.delete_outline,
+                            color: p.danger,
                             size: 22,
                           ),
                           onPressed: () {
@@ -1291,17 +1188,26 @@ class _TasbihHomeState extends State<TasbihHome>
 
   // معدل: إعادة ضبط مع خيارات
   void _showResetOptions() {
+    final p = context.palette;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("إعادة ضبط الإحصائيات", textAlign: TextAlign.right),
+        backgroundColor: p.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: AppRadius.cardR,
+          side: BorderSide(color: p.border),
+        ),
+        title: Text(
+          "إعادة ضبط الإحصائيات",
+          textAlign: TextAlign.right,
+          style: TextStyle(color: p.text),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             // خيار 1
             ListTile(
-              leading: const Icon(Icons.refresh, color: Colors.blue),
+              leading: Icon(Icons.refresh, color: p.primary),
               title: const Text("إعادة العداد الحالي"),
               subtitle: const Text("تصفير العداد والذكر فقط"),
               onTap: () {
@@ -1316,10 +1222,10 @@ class _TasbihHomeState extends State<TasbihHome>
                 );
               },
             ),
-            const Divider(),
+            Divider(color: p.border),
             // خيار 2
             ListTile(
-              leading: const Icon(Icons.today, color: Colors.orange),
+              leading: Icon(Icons.today, color: p.accent),
               title: const Text("إعادة الإحصائيات اليومية"),
               subtitle: const Text("تصفير العداد اليومي فقط"),
               onTap: () {
@@ -1331,10 +1237,10 @@ class _TasbihHomeState extends State<TasbihHome>
                 );
               },
             ),
-            const Divider(),
+            Divider(color: p.border),
             // خيار 3
             ListTile(
-              leading: const Icon(Icons.delete_forever, color: Colors.red),
+              leading: Icon(Icons.delete_forever, color: p.danger),
               title: const Text("إعادة كل الإحصائيات"),
               subtitle: const Text("تصفير كل شيء + السجل"),
               onTap: () {
@@ -1347,7 +1253,7 @@ class _TasbihHomeState extends State<TasbihHome>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("إلغاء"),
+            child: Text("إلغاء", style: TextStyle(color: p.textMuted)),
           ),
         ],
       ),
@@ -1356,18 +1262,29 @@ class _TasbihHomeState extends State<TasbihHome>
 
   // جديد: تأكيد إعادة الضبط الكامل
   void _confirmResetAll() {
+    final p = context.palette;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("⚠️ تأكيد", textAlign: TextAlign.right),
-        content: const Text(
+        backgroundColor: p.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: AppRadius.cardR,
+          side: BorderSide(color: p.border),
+        ),
+        title: Text(
+          "⚠️ تأكيد",
+          textAlign: TextAlign.right,
+          style: TextStyle(color: p.text),
+        ),
+        content: Text(
           "هل أنت متأكد من حذف كل الإحصائيات والسجل؟",
           textAlign: TextAlign.right,
+          style: TextStyle(color: p.textMuted),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("إلغاء"),
+            child: Text("إلغاء", style: TextStyle(color: p.textMuted)),
           ),
           TextButton(
             onPressed: () {
@@ -1385,7 +1302,7 @@ class _TasbihHomeState extends State<TasbihHome>
                 const SnackBar(content: Text("تم حذف كل الإحصائيات ✓")),
               );
             },
-            child: const Text("تأكيد", style: TextStyle(color: Colors.red)),
+            child: Text("تأكيد", style: TextStyle(color: p.danger)),
           ),
         ],
       ),
@@ -1394,13 +1311,12 @@ class _TasbihHomeState extends State<TasbihHome>
 
   @override
   Widget build(BuildContext context) {
-    bool isDark = Theme.of(context).brightness == Brightness.dark;
-    Color currentColor = _readableColor(_azkar[_index]['color'], isDark);
-    final orange = isDark ? Colors.orangeAccent : const Color(0xFFC15F00);
+    final p = context.palette;
+    final Color currentColor = _currentZikrColor;
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: p.bg,
       body: SafeArea(
         child: Stack(
           children: [
@@ -1412,7 +1328,7 @@ class _TasbihHomeState extends State<TasbihHome>
                     MediaQuery.of(context).padding.bottom,
                 child: Column(
                   children: [
-                    const SizedBox(height: 30),
+                    const SizedBox(height: AppSpace.xl),
                     // معدل: إضافة العداد اليومي
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -1420,35 +1336,33 @@ class _TasbihHomeState extends State<TasbihHome>
                         TasbihStatItem(
                           label: "الإجمالي اليومي",
                           value: "$_dailyCounter",
-                          color: orange,
-                          isDark: isDark,
+                          color: p.accent,
                         ),
                         TasbihStatItem(
                           label: "الإجمالي طوال الوقت",
                           value: "$_totalCounter",
                           color: currentColor,
-                          isDark: isDark,
                         ),
                         TasbihStatItem(
                           label: "الهدف",
                           value: "$_target",
                           color: currentColor,
-                          isDark: isDark,
                         ),
                       ],
                     ),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpace.lg,
+                        AppSpace.lg,
+                        AppSpace.lg,
+                        0,
+                      ),
                       child: Container(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(AppSpace.md),
                         decoration: BoxDecoration(
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.04)
-                              : Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: currentColor.withValues(alpha: 0.22),
-                          ),
+                          color: p.surface,
+                          borderRadius: AppRadius.cardR,
+                          border: Border.all(color: p.border),
                         ),
                         child: Row(
                           children: [
@@ -1457,29 +1371,30 @@ class _TasbihHomeState extends State<TasbihHome>
                               icon: Icon(Icons.tune, color: currentColor),
                               onPressed: _showTasbihSettings,
                             ),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: AppSpace.xs),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(
                                     "هدف اليوم: $_dailyCounter / $_dailyTarget",
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontWeight: FontWeight.bold,
+                                      color: p.text,
                                     ),
                                   ),
-                                  const SizedBox(height: 8),
+                                  const SizedBox(height: AppSpace.sm),
                                   ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: BorderRadius.circular(
+                                      AppRadius.small,
+                                    ),
                                     child: LinearProgressIndicator(
                                       value: (_dailyCounter / _dailyTarget)
                                           .clamp(0.0, 1.0)
                                           .toDouble(),
                                       minHeight: 7,
                                       color: currentColor,
-                                      backgroundColor: isDark
-                                          ? Colors.white10
-                                          : Colors.black12,
+                                      backgroundColor: p.surfaceAlt,
                                     ),
                                   ),
                                 ],
@@ -1493,7 +1408,9 @@ class _TasbihHomeState extends State<TasbihHome>
                     InkWell(
                       onTap: _showZikrPicker,
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpace.xl,
+                        ),
                         child: Column(
                           children: [
                             AnimatedSwitcher(
@@ -1502,18 +1419,18 @@ class _TasbihHomeState extends State<TasbihHome>
                                 _azkar[_index]['text'],
                                 key: ValueKey(_index),
                                 textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 26,
-                                  color: currentColor.withOpacity(0.9),
-                                  fontWeight: FontWeight.bold,
+                                style: QuranTextStyle.amiri(
+                                  fontSize: 28,
+                                  color: currentColor,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 5),
+                            const SizedBox(height: AppSpace.xs),
                             Text(
                               "انقر لتغيير الذكر أو اضافة ذكر جديد",
                               style: TextStyle(
-                                color: isDark ? Colors.white24 : Colors.black26,
+                                color: p.textFaint,
                                 fontSize: 10,
                               ),
                             ),
@@ -1521,24 +1438,19 @@ class _TasbihHomeState extends State<TasbihHome>
                         ),
                       ),
                     ),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: AppSpace.xl),
                     GestureDetector(
                       onTap: _increment,
-                      child: _buildCounterSurface(currentColor, isDark),
+                      child: _buildCounterSurface(p, currentColor),
                     ),
                     const Expanded(child: SizedBox()),
                     // معدل: زر إعادة الضبط مع خيارات
                     TextButton.icon(
                       onPressed: _showResetOptions,
-                      icon: Icon(
-                        Icons.refresh,
-                        color: isDark ? Colors.white24 : Colors.black26,
-                      ),
+                      icon: Icon(Icons.refresh, color: p.textFaint, size: 18),
                       label: Text(
                         "إعادة ضبط الإحصائيات",
-                        style: TextStyle(
-                          color: isDark ? Colors.white24 : Colors.black26,
-                        ),
+                        style: TextStyle(color: p.textFaint),
                       ),
                     ),
                     const SizedBox(height: 50),
@@ -1550,8 +1462,8 @@ class _TasbihHomeState extends State<TasbihHome>
             if (_showCelebration)
               Positioned(
                 top: 120,
-                left: 20,
-                right: 20,
+                left: AppSpace.xl,
+                right: AppSpace.xl,
                 child: IgnorePointer(
                   child: SlideTransition(
                     position:
@@ -1573,77 +1485,41 @@ class _TasbihHomeState extends State<TasbihHome>
                       ),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 14,
+                          horizontal: AppSpace.xl,
+                          vertical: AppSpace.lg,
                         ),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topRight,
-                            end: Alignment.bottomLeft,
-                            colors: [
-                              _currentCelebrationColor,
-                              _currentCelebrationColor.withOpacity(0.7),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(30),
-                          border: Border.all(
-                            color: _currentCelebrationColor.withOpacity(0.3),
-                            width: 1,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: _currentCelebrationColor.withOpacity(0.4),
-                              blurRadius: 20,
-                              spreadRadius: 3,
-                            ),
-                          ],
+                          color: _currentCelebrationColor,
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.mosque,
-                                color: Colors.white,
-                                size: 18,
-                              ),
+                            Icon(
+                              Icons.mosque,
+                              color: ZikrColors.inkOn(_currentCelebrationColor),
+                              size: 18,
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: AppSpace.md),
                             Expanded(
                               child: Text(
                                 _currentCelebrationMessage,
-                                style: const TextStyle(
-                                  fontSize: 16,
+                                style: TextStyle(
+                                  fontSize: 15,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                  letterSpacing: 0.5,
-                                  shadows: [
-                                    Shadow(
-                                      color: Colors.black26,
-                                      blurRadius: 4,
-                                    ),
-                                  ],
+                                  color: ZikrColors.inkOn(
+                                    _currentCelebrationColor,
+                                  ),
+                                  letterSpacing: 0.3,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
                             ),
-                            const SizedBox(width: 12),
-                            Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.check_circle,
-                                color: Colors.white,
-                                size: 18,
-                              ),
+                            const SizedBox(width: AppSpace.md),
+                            Icon(
+                              Icons.check_circle,
+                              color: ZikrColors.inkOn(_currentCelebrationColor),
+                              size: 18,
                             ),
                           ],
                         ),
@@ -1658,7 +1534,7 @@ class _TasbihHomeState extends State<TasbihHome>
     );
   }
 
-  Widget _buildCounterSurface(Color currentColor, bool isDark) {
+  Widget _buildCounterSurface(AppPalette p, Color currentColor) {
     final progress = (_counter / _target).clamp(0.0, 1.0).toDouble();
     final bool simple = _counterStyle == 'simple';
 
@@ -1671,14 +1547,8 @@ class _TasbihHomeState extends State<TasbihHome>
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: isDark ? const Color(0xFF121212) : Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: currentColor.withValues(alpha: 0.16),
-              blurRadius: 38,
-            ),
-          ],
-          border: Border.all(color: currentColor.withValues(alpha: 0.22)),
+          color: p.surface,
+          border: Border.all(color: currentColor.withValues(alpha: 0.35)),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1696,7 +1566,7 @@ class _TasbihHomeState extends State<TasbihHome>
                     shape: BoxShape.circle,
                     color: active
                         ? currentColor
-                        : currentColor.withValues(alpha: 0.14),
+                        : currentColor.withValues(alpha: 0.18),
                   ),
                 );
               }),
@@ -1707,7 +1577,7 @@ class _TasbihHomeState extends State<TasbihHome>
               style: TextStyle(
                 fontSize: 70,
                 color: currentColor,
-                fontWeight: FontWeight.w100,
+                fontWeight: FontWeight.w200,
               ),
             ),
           ],
@@ -1720,15 +1590,9 @@ class _TasbihHomeState extends State<TasbihHome>
         height: 190,
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF121212) : Colors.white,
-          borderRadius: BorderRadius.circular(28),
-          boxShadow: [
-            BoxShadow(
-              color: currentColor.withValues(alpha: 0.14),
-              blurRadius: 34,
-            ),
-          ],
-          border: Border.all(color: currentColor.withValues(alpha: 0.22)),
+          color: p.surface,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(color: currentColor.withValues(alpha: 0.35)),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1738,16 +1602,16 @@ class _TasbihHomeState extends State<TasbihHome>
               style: TextStyle(
                 fontSize: 82,
                 color: currentColor,
-                fontWeight: FontWeight.w100,
+                fontWeight: FontWeight.w200,
               ),
             ),
             ClipRRect(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppRadius.small),
               child: LinearProgressIndicator(
                 value: progress,
                 minHeight: 8,
                 color: currentColor,
-                backgroundColor: currentColor.withValues(alpha: 0.12),
+                backgroundColor: p.surfaceAlt,
               ),
             ),
           ],
@@ -1763,7 +1627,7 @@ class _TasbihHomeState extends State<TasbihHome>
             child: CircularProgressIndicator(
               value: progress,
               strokeWidth: 8,
-              backgroundColor: currentColor.withValues(alpha: 0.1),
+              backgroundColor: p.surfaceAlt,
               valueColor: AlwaysStoppedAnimation<Color>(currentColor),
             ),
           ),
@@ -1773,14 +1637,8 @@ class _TasbihHomeState extends State<TasbihHome>
             height: 250,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: isDark ? const Color(0xFF121212) : Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: currentColor.withValues(alpha: 0.15),
-                  blurRadius: 40,
-                ),
-              ],
-              border: Border.all(color: currentColor.withValues(alpha: 0.2)),
+              color: p.surface,
+              border: Border.all(color: currentColor.withValues(alpha: 0.35)),
             ),
             child: Center(
               child: Text(
@@ -1788,7 +1646,7 @@ class _TasbihHomeState extends State<TasbihHome>
                 style: TextStyle(
                   fontSize: 85,
                   color: currentColor,
-                  fontWeight: FontWeight.w100,
+                  fontWeight: FontWeight.w200,
                 ),
               ),
             ),
@@ -1810,10 +1668,7 @@ class _TasbihHomeState extends State<TasbihHome>
             right: simple ? 12 : 25,
             child: IconButton(
               tooltip: "هدف الذكر",
-              icon: Icon(
-                Icons.flag,
-                color: currentColor.withValues(alpha: 0.65),
-              ),
+              icon: Icon(Icons.flag_outlined, color: p.textMuted),
               onPressed: _showTargetPicker,
             ),
           ),
@@ -1822,10 +1677,7 @@ class _TasbihHomeState extends State<TasbihHome>
             left: simple ? 12 : 25,
             child: IconButton(
               tooltip: "سجل الطاعات",
-              icon: Icon(
-                Icons.history,
-                color: currentColor.withValues(alpha: 0.65),
-              ),
+              icon: Icon(Icons.history, color: p.textMuted),
               onPressed: _showActivityLog,
             ),
           ),
@@ -1835,29 +1687,23 @@ class _TasbihHomeState extends State<TasbihHome>
               left: 0,
               right: 0,
               child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 10),
-                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.symmetric(horizontal: AppSpace.sm),
+                padding: const EdgeInsets.all(AppSpace.md),
                 decoration: BoxDecoration(
-                  color: Colors.blueAccent.withValues(alpha: 0.9),
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.blueAccent.withValues(alpha: 0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
+                  color: p.accentSoft,
+                  borderRadius: BorderRadius.circular(AppRadius.chip),
+                  border: Border.all(color: p.accent),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.touch_app, color: Colors.white, size: 20),
-                    const SizedBox(width: 10),
-                    const Expanded(
+                    Icon(Icons.touch_app, color: p.accent, size: 20),
+                    const SizedBox(width: AppSpace.sm),
+                    Expanded(
                       child: Text(
                         'اضغط على العداد لبدء العد',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: p.text,
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                         ),
@@ -1867,11 +1713,7 @@ class _TasbihHomeState extends State<TasbihHome>
                     IconButton(
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
-                      icon: const Icon(
-                        Icons.close,
-                        color: Colors.white,
-                        size: 18,
-                      ),
+                      icon: Icon(Icons.close, color: p.textMuted, size: 18),
                       onPressed: () {
                         setState(() => _showTip = false);
                         _saveData();

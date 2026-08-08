@@ -1,5 +1,7 @@
 package com.example.flutter_development
 
-import io.flutter.embedding.android.FlutterActivity
+import com.ryanheise.audioservice.AudioServiceActivity
 
-class MainActivity : FlutterActivity()
+// لازم نرث من AudioServiceActivity بدل FlutterActivity عشان الضغط على
+// إشعار التلاوة يقدر يرجّع التطبيق للواجهة
+class MainActivity : AudioServiceActivity()

@@ -24,9 +24,6 @@ class _CustomSplashScreenState extends State<CustomSplashScreen>
   late final Animation<double> _detailsFade;
 
   final String _arabicText = "أَذْكَارِي";
-  final Color _gold = const Color(0xFFFFD56A);
-  final Color _deepGold = const Color(0xFF9D6B18);
-  final Color _black = const Color(0xFF030303);
 
   Timer? _detailsTimer;
   Timer? _navigationTimer;
@@ -90,8 +87,10 @@ class _CustomSplashScreenState extends State<CustomSplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final _SplashColors c = _SplashColors.of(context);
+
     return Scaffold(
-      backgroundColor: _black,
+      backgroundColor: c.ground,
       body: AnimatedBuilder(
         animation: Listenable.merge([_revealController, _lightController]),
         builder: (context, child) {
@@ -109,13 +108,9 @@ class _CustomSplashScreenState extends State<CustomSplashScreen>
                     center: const Alignment(0.15, -0.25),
                     radius: 1.15,
                     colors: [
-                      Color.lerp(
-                        const Color(0xFF20180A),
-                        const Color(0xFF3B280A),
-                        breath,
-                      )!,
-                      const Color(0xFF080705),
-                      _black,
+                      Color.lerp(c.glowNear, c.glowFar, breath)!,
+                      c.groundMid,
+                      c.ground,
                     ],
                     stops: const [0.0, 0.46, 1.0],
                   ),
@@ -124,7 +119,9 @@ class _CustomSplashScreenState extends State<CustomSplashScreen>
               CustomPaint(
                 painter: _IslamicAuraPainter(
                   progress: _lightController.value,
-                  color: _gold.withValues(alpha: 0.12 + (breath * 0.08)),
+                  color: c.halo.withValues(
+                    alpha: c.auraAlpha + (breath * c.auraSwing),
+                  ),
                 ),
               ),
               Center(
@@ -133,7 +130,7 @@ class _CustomSplashScreenState extends State<CustomSplashScreen>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _buildCalligraphy(reveal, breath),
+                      _buildCalligraphy(c, reveal, breath),
                       const SizedBox(height: 22),
                       FadeTransition(
                         opacity: _detailsFade,
@@ -146,7 +143,7 @@ class _CustomSplashScreenState extends State<CustomSplashScreen>
                                 gradient: LinearGradient(
                                   colors: [
                                     Colors.transparent,
-                                    _gold.withValues(alpha: 0.85),
+                                    c.halo.withValues(alpha: 0.85),
                                     Colors.transparent,
                                   ],
                                 ),
@@ -157,7 +154,7 @@ class _CustomSplashScreenState extends State<CustomSplashScreen>
                               "A D H K A R I",
                               style: GoogleFonts.raleway(
                                 fontSize: 13,
-                                color: _gold.withValues(alpha: 0.58),
+                                color: c.subtitle,
                                 letterSpacing: 9,
                                 fontWeight: FontWeight.w300,
                               ),
@@ -177,7 +174,7 @@ class _CustomSplashScreenState extends State<CustomSplashScreen>
   }
 
   // 👇 دي الدالة الجديدة الموسعة اللي طلبتها مدموجة هنا جاهزة
-  Widget _buildCalligraphy(double reveal, double breath) {
+  Widget _buildCalligraphy(_SplashColors c, double reveal, double breath) {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Padding(
@@ -188,7 +185,8 @@ class _CustomSplashScreenState extends State<CustomSplashScreen>
             Text(
               _arabicText,
               style: _calligraphyStyle(
-                color: _gold.withValues(alpha: 0.10),
+                c,
+                color: c.ink.withValues(alpha: 0.10),
                 blur: 0,
               ),
             ),
@@ -209,10 +207,10 @@ class _CustomSplashScreenState extends State<CustomSplashScreen>
                   begin: Alignment.topRight,
                   end: Alignment.bottomLeft,
                   colors: [
-                    _deepGold,
-                    _gold,
-                    const Color(0xFFFFE8A6).withValues(alpha: 0.95),
-                    _gold.withValues(alpha: 0.15),
+                    c.inkDeep,
+                    c.ink,
+                    c.inkBright,
+                    c.ink.withValues(alpha: 0.15),
                     Colors.transparent,
                   ],
                   stops: [0.0, stop1, stop2, reveal, 1.0],
@@ -220,7 +218,11 @@ class _CustomSplashScreenState extends State<CustomSplashScreen>
               },
               child: Text(
                 _arabicText,
-                style: _calligraphyStyle(color: _gold, blur: 7 + (breath * 6)),
+                style: _calligraphyStyle(
+                  c,
+                  color: c.ink,
+                  blur: 7 + (breath * 6),
+                ),
               ),
             ),
           ],
@@ -229,7 +231,11 @@ class _CustomSplashScreenState extends State<CustomSplashScreen>
     );
   }
 
-  TextStyle _calligraphyStyle({required Color color, required double blur}) {
+  TextStyle _calligraphyStyle(
+    _SplashColors c, {
+    required Color color,
+    required double blur,
+  }) {
     return GoogleFonts.scheherazadeNew(
       fontSize: 104,
       fontWeight: FontWeight.w700,
@@ -237,18 +243,92 @@ class _CustomSplashScreenState extends State<CustomSplashScreen>
       color: color,
       shadows: [
         Shadow(
-          color: _gold.withValues(alpha: 0.33),
+          color: c.halo.withValues(alpha: c.glowAlpha),
           blurRadius: blur,
           offset: const Offset(0, 0),
         ),
         Shadow(
-          color: _deepGold.withValues(alpha: 0.26),
+          color: c.inkDeep.withValues(alpha: c.glowAlpha * 0.8),
           blurRadius: blur * 2,
           offset: const Offset(0, 0),
         ),
       ],
     );
   }
+}
+
+/// ألوان شاشة البداية — زمردي على رملي في النهار، زمردي فاتح على أخضر
+/// غامق في الليل. الحركة والتوقيت زي ما هما، اللي اتغير هو اللون بس.
+class _SplashColors {
+  final Color ground;
+  final Color groundMid;
+  final Color glowNear;
+  final Color glowFar;
+
+  /// لون الخط العربي ودرجاته في التدرّج اللي بيكشف الاسم
+  final Color ink;
+  final Color inkDeep;
+  final Color inkBright;
+
+  /// الذهبي الهادي — الهالة والخط الفاصل
+  final Color halo;
+  final Color subtitle;
+
+  final double auraAlpha;
+  final double auraSwing;
+  final double glowAlpha;
+
+  const _SplashColors({
+    required this.ground,
+    required this.groundMid,
+    required this.glowNear,
+    required this.glowFar,
+    required this.ink,
+    required this.inkDeep,
+    required this.inkBright,
+    required this.halo,
+    required this.subtitle,
+    required this.auraAlpha,
+    required this.auraSwing,
+    required this.glowAlpha,
+  });
+
+  static _SplashColors of(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    return isDark ? _dark : _light;
+  }
+
+  /// النهار — رملي دافي والاسم زمردي غامق
+  static const _SplashColors _light = _SplashColors(
+    ground: Color(0xFFF0E9DA),
+    groundMid: Color(0xFFF7F3EA),
+    glowNear: Color(0xFFFFFDF8),
+    glowFar: Color(0xFFFBF4E4),
+    ink: Color(0xFF0F6B4F),
+    inkDeep: Color(0xFF083D2D),
+    inkBright: Color(0xFF2E9370),
+    halo: Color(0xFFC9A227),
+    subtitle: Color(0xFF6B7A73),
+    auraAlpha: 0.16,
+    auraSwing: 0.10,
+    glowAlpha: 0.14,
+  );
+
+  /// الليل — فحمي محايد يطابق خلفية الثيم الجديدة، والاسم زمردي هادي
+  static const _SplashColors _dark = _SplashColors(
+    ground: Color(0xFF101413),
+    groundMid: Color(0xFF161C1A),
+    glowNear: Color(0xFF1E2623),
+    glowFar: Color(0xFF252E2A),
+    ink: Color(0xFF52B892),
+    inkDeep: Color(0xFF2A6B52),
+    inkBright: Color(0xFFA9E0C6),
+    halo: Color(0xFFD9B75A),
+    subtitle: Color(0xFF9BA8A2),
+    auraAlpha: 0.12,
+    auraSwing: 0.08,
+    glowAlpha: 0.24,
+  );
 }
 
 class _IslamicAuraPainter extends CustomPainter {

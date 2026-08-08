@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/azkar_data.dart';
 import '../models/zikr_model.dart';
+import '../theme/app_theme.dart';
 
 class AzkarPage extends StatefulWidget {
   final double fontSize;
@@ -18,9 +19,7 @@ class AzkarPage extends StatefulWidget {
 }
 
 class _AzkarPageState extends State<AzkarPage> {
-  String _searchQuery = '';
   bool _showSources = true;
-  final TextEditingController _searchController = TextEditingController();
 
   final List<_AzkarSection> _sections = [
     _AzkarSection('الصباح', 'morning', AzkarData.morningAzkar),
@@ -33,15 +32,8 @@ class _AzkarPageState extends State<AzkarPage> {
   ];
 
   @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final accent = isDark ? Colors.cyanAccent : const Color(0xFF007C89);
+    final p = context.palette;
 
     return DefaultTabController(
       length: _sections.length,
@@ -61,60 +53,22 @@ class _AzkarPageState extends State<AzkarPage> {
           ],
           bottom: TabBar(
             isScrollable: true,
-            indicatorColor: accent,
-            labelColor: isDark ? Colors.white : Colors.black,
-            unselectedLabelColor: isDark ? Colors.white54 : Colors.black54,
+            indicatorColor: p.primary,
+            labelColor: p.text,
+            unselectedLabelColor: p.textMuted,
             tabs: _sections.map((section) => Tab(text: section.title)).toList(),
           ),
         ),
-        body: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.fromLTRB(15, 12, 15, 10),
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.03)
-                  : Colors.grey[100],
-              child: TextField(
-                controller: _searchController,
-                textAlign: TextAlign.right,
-                onChanged: (value) =>
-                    setState(() => _searchQuery = value.trim()),
-                decoration: InputDecoration(
-                  hintText: 'ابحث في الأذكار...',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _searchQuery.isEmpty
-                      ? null
-                      : IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() => _searchQuery = '');
-                          },
-                        ),
-                  filled: true,
-                  fillColor: isDark ? const Color(0xFF121212) : Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-            ),
-            Expanded(
-              child: TabBarView(
-                children: _sections.map((section) {
-                  return AzkarList(
-                    items: section.items,
-                    fontSize: widget.fontSize,
-                    type: section.type,
-                    title: section.title,
-                    searchQuery: _searchQuery,
-                    showSources: _showSources,
-                  );
-                }).toList(),
-              ),
-            ),
-          ],
+        body: TabBarView(
+          children: _sections.map((section) {
+            return AzkarList(
+              items: section.items,
+              fontSize: widget.fontSize,
+              type: section.type,
+              title: section.title,
+              showSources: _showSources,
+            );
+          }).toList(),
         ),
       ),
     );
@@ -126,7 +80,6 @@ class AzkarList extends StatefulWidget {
   final double fontSize;
   final String type;
   final String title;
-  final String searchQuery;
   final bool showSources;
 
   const AzkarList({
@@ -135,7 +88,6 @@ class AzkarList extends StatefulWidget {
     required this.fontSize,
     required this.type,
     required this.title,
-    required this.searchQuery,
     required this.showSources,
   });
 
@@ -283,10 +235,7 @@ class _AzkarListState extends State<AzkarList> {
   }
 
   void _showCompletionDialog() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final accent = isDark ? Colors.cyanAccent : const Color(0xFF007C89);
-    final orange = isDark ? Colors.orangeAccent : const Color(0xFFC15F00);
-    final green = isDark ? Colors.greenAccent : const Color(0xFF2E7D32);
+    final p = context.palette;
     _registerCompletion();
 
     showDialog(
@@ -294,44 +243,38 @@ class _AzkarListState extends State<AzkarList> {
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
         child: Container(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpace.xl),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topRight,
-              end: Alignment.bottomLeft,
-              colors: isDark
-                  ? [const Color(0xFF1a1a1a), const Color(0xFF0d0d0d)]
-                  : [Colors.white, const Color(0xFFF5F5F5)],
-            ),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: green.withValues(alpha: 0.3), width: 2),
+            color: p.surface,
+            borderRadius: BorderRadius.circular(AppRadius.card),
+            border: Border.all(color: p.border),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.check_circle, color: green, size: 70),
-              const SizedBox(height: 16),
+              Icon(Icons.check_circle, color: p.success, size: 70),
+              const SizedBox(height: AppSpace.lg),
               Text(
                 "أتممت أذكار ${widget.title}",
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
+                  color: p.text,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpace.sm),
               Text(
                 "اللهم تقبل وبارك في وردك",
-                style: TextStyle(
-                  color: isDark ? Colors.white70 : Colors.black54,
-                ),
+                style: TextStyle(color: p.textMuted),
               ),
               const SizedBox(height: 18),
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: green.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(14),
+                  color: p.surfaceAlt,
+                  borderRadius: BorderRadius.circular(AppRadius.chip),
+                  border: Border.all(color: p.border),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -340,14 +283,14 @@ class _AzkarListState extends State<AzkarList> {
                       icon: Icons.local_fire_department,
                       label: 'متتالي',
                       value: '$_currentStreak يوم',
-                      color: orange,
+                      color: p.accent,
                     ),
-                    Container(width: 1, height: 42, color: Colors.white24),
+                    Container(width: 1, height: 42, color: p.border),
                     _CompletionStat(
                       icon: Icons.timeline,
                       label: 'مجموع',
                       value: '$_totalCompleted',
-                      color: accent,
+                      color: p.primary,
                     ),
                   ],
                 ),
@@ -368,14 +311,14 @@ class _AzkarListState extends State<AzkarList> {
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: ElevatedButton(
+                    child: FilledButton(
                       onPressed: () => Navigator.pop(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: green,
-                        foregroundColor: isDark ? Colors.black : Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: p.primary,
+                        foregroundColor: p.onPrimary,
+                        padding: const EdgeInsets.symmetric(vertical: AppSpace.md),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppRadius.chip),
                         ),
                       ),
                       child: const Text('الحمد لله'),
@@ -391,57 +334,59 @@ class _AzkarListState extends State<AzkarList> {
   }
 
   void _showStatsDialog() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final accent = isDark ? Colors.cyanAccent : const Color(0xFF007C89);
-    final orange = isDark ? Colors.orangeAccent : const Color(0xFFC15F00);
-    final green = isDark ? Colors.greenAccent : const Color(0xFF2E7D32);
+    final p = context.palette;
 
     showDialog(
       context: context,
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
         child: Container(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpace.xl),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1a1a1a) : Colors.white,
-            borderRadius: BorderRadius.circular(24),
+            color: p.surface,
+            borderRadius: BorderRadius.circular(AppRadius.card),
+            border: Border.all(color: p.border),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.bar_chart, color: accent, size: 48),
-              const SizedBox(height: 12),
-              const Text(
+              Icon(Icons.bar_chart, color: p.primary, size: 48),
+              const SizedBox(height: AppSpace.md),
+              Text(
                 'إحصائيات الأذكار',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: p.text,
+                ),
               ),
               const SizedBox(height: 18),
               _buildStatRow(
+                p,
                 Icons.local_fire_department,
                 'الأيام المتتالية',
                 '$_currentStreak يوم',
-                orange,
-                isDark,
+                p.accent,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpace.md),
               _buildStatRow(
+                p,
                 Icons.check_circle_outline,
                 'مجموع الإتمامات',
                 '$_totalCompleted',
-                green,
-                isDark,
+                p.success,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpace.md),
               _buildStatRow(
+                p,
                 Icons.calendar_today,
                 'آخر إتمام',
                 _lastCompletionDate.isEmpty
                     ? 'لم يتم بعد'
                     : _lastCompletionDate,
-                Colors.blueAccent,
-                isDark,
+                p.primary,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpace.lg),
               TextButton(
                 onPressed: () => Navigator.pop(context),
                 child: const Text('إغلاق'),
@@ -454,17 +399,18 @@ class _AzkarListState extends State<AzkarList> {
   }
 
   Widget _buildStatRow(
+    AppPalette p,
     IconData icon,
     String label,
     String value,
     Color color,
-    bool isDark,
   ) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[100],
-        borderRadius: BorderRadius.circular(12),
+        color: p.surfaceAlt,
+        borderRadius: BorderRadius.circular(AppRadius.chip),
+        border: Border.all(color: p.border),
       ),
       child: Row(
         children: [
@@ -474,16 +420,14 @@ class _AzkarListState extends State<AzkarList> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: isDark ? Colors.white70 : Colors.black54,
-                  ),
-                ),
+                Text(label, style: TextStyle(color: p.textMuted)),
                 const SizedBox(height: 3),
                 Text(
                   value,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: p.text,
+                  ),
                 ),
               ],
             ),
@@ -495,15 +439,6 @@ class _AzkarListState extends State<AzkarList> {
 
   List<Zikr> _getDisplayItems() {
     Iterable<Zikr> result = widget.items;
-
-    if (widget.searchQuery.isNotEmpty) {
-      result = result.where((item) {
-        final text = item.text.toLowerCase();
-        final source = item.source?.toLowerCase() ?? '';
-        final query = widget.searchQuery.toLowerCase();
-        return text.contains(query) || source.contains(query);
-      });
-    }
 
     if (_favoritesOnly) {
       result = result.where((item) => _favorites.contains(item.text));
@@ -519,10 +454,7 @@ class _AzkarListState extends State<AzkarList> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final accent = isDark ? Colors.cyanAccent : const Color(0xFF007C89);
-    final orange = isDark ? Colors.orangeAccent : const Color(0xFFC15F00);
-    final favoriteColor = isDark ? Colors.amberAccent : const Color(0xFFB7791F);
+    final p = context.palette;
     final completed = widget.items.where((i) => i.current == 0).length;
     final progress = widget.items.isEmpty
         ? 0.0
@@ -534,9 +466,7 @@ class _AzkarListState extends State<AzkarList> {
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.03)
-              : Colors.grey[100],
+          color: p.surfaceAlt,
           child: Column(
             children: [
               Row(
@@ -551,7 +481,7 @@ class _AzkarListState extends State<AzkarList> {
                       _favoritesOnly ? Icons.star : Icons.star_border,
                       size: 22,
                     ),
-                    color: _favoritesOnly ? favoriteColor : null,
+                    color: _favoritesOnly ? p.accent : null,
                     tooltip: 'المفضلة',
                     onPressed: () =>
                         setState(() => _favoritesOnly = !_favoritesOnly),
@@ -573,7 +503,7 @@ class _AzkarListState extends State<AzkarList> {
                     children: [
                       Icon(
                         Icons.local_fire_department,
-                        color: orange,
+                        color: p.accent,
                         size: 18,
                       ),
                       const SizedBox(width: 5),
@@ -589,18 +519,18 @@ class _AzkarListState extends State<AzkarList> {
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: accent,
+                      color: p.primary,
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
               ClipRRect(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(AppRadius.small),
                 child: LinearProgressIndicator(
                   value: progress,
-                  backgroundColor: isDark ? Colors.white10 : Colors.black12,
-                  color: accent,
+                  backgroundColor: p.border,
+                  color: p.primary,
                   minHeight: 8,
                 ),
               ),
@@ -609,7 +539,7 @@ class _AzkarListState extends State<AzkarList> {
         ),
         Expanded(
           child: displayItems.isEmpty
-              ? _EmptyAzkarState(isDark: isDark)
+              ? const _EmptyAzkarState()
               : ListView.builder(
                   padding: const EdgeInsets.only(
                     top: 15,
@@ -621,7 +551,7 @@ class _AzkarListState extends State<AzkarList> {
                   itemBuilder: (context, index) {
                     final item = displayItems[index];
                     final isDone = item.current == 0;
-                    return _buildZikrCard(item, isDone, index, isDark);
+                    return _buildZikrCard(p, item, isDone, index);
                   },
                 ),
         ),
@@ -629,27 +559,19 @@ class _AzkarListState extends State<AzkarList> {
     );
   }
 
-  Widget _buildZikrCard(Zikr item, bool isDone, int index, bool isDark) {
+  Widget _buildZikrCard(AppPalette p, Zikr item, bool isDone, int index) {
     final isFavorite = _favorites.contains(item.text);
-    final accent = isDark ? Colors.cyanAccent : const Color(0xFF007C89);
-    final favoriteColor = isDark ? Colors.amberAccent : const Color(0xFFB7791F);
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: AppSpace.md),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDone
-            ? (isDark
-                  ? Colors.white.withValues(alpha: 0.02)
-                  : Colors.grey[200]?.withValues(alpha: 0.5))
-            : (isDark ? const Color(0xFF121212) : Colors.white),
-        borderRadius: BorderRadius.circular(20),
+        color: isDone ? p.surfaceAlt : p.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(
-          color: isDone
-              ? (isDark ? Colors.white10 : Colors.black12)
-              : accent.withValues(alpha: 0.3),
-          width: isDone ? 1 : 2,
+          color: isDone ? p.border : p.primary,
+          width: isDone ? 1 : 1.5,
         ),
       ),
       child: Column(
@@ -662,7 +584,12 @@ class _AzkarListState extends State<AzkarList> {
               children: [
                 Text(
                   item.text,
-                  style: TextStyle(fontSize: widget.fontSize, height: 1.6),
+                  style: QuranTextStyle.amiri(
+                    color: p.text,
+                    fontSize: widget.fontSize,
+                    fontWeight: FontWeight.w600,
+                    height: 1.7,
+                  ),
                   textAlign: TextAlign.right,
                 ),
                 if (widget.showSources && item.source != null) ...[
@@ -677,18 +604,14 @@ class _AzkarListState extends State<AzkarList> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               if (isDone)
-                const Row(
+                Row(
                   children: [
-                    Icon(
-                      Icons.check_circle,
-                      color: Colors.lightGreen,
-                      size: 24,
-                    ),
-                    SizedBox(width: 8),
+                    Icon(Icons.check_circle, color: p.success, size: 24),
+                    const SizedBox(width: AppSpace.sm),
                     Text(
                       "تم الإتمام اليوم",
                       style: TextStyle(
-                        color: Colors.lightGreen,
+                        color: p.success,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -719,18 +642,14 @@ class _AzkarListState extends State<AzkarList> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: isDark
-                          ? accent.withValues(alpha: 0.15)
-                          : accent.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(20),
-                      border: isDark
-                          ? null
-                          : Border.all(color: accent.withValues(alpha: 0.35)),
+                      color: p.primarySoft,
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                      border: Border.all(color: p.primary),
                     ),
                     child: Text(
                       "باقي: ${item.current}",
                       style: TextStyle(
-                        color: accent,
+                        color: p.primary,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -743,7 +662,7 @@ class _AzkarListState extends State<AzkarList> {
                       isFavorite ? Icons.star : Icons.star_border,
                       size: 21,
                     ),
-                    color: isFavorite ? favoriteColor : null,
+                    color: isFavorite ? p.accent : null,
                     tooltip: 'المفضلة',
                     onPressed: () => _toggleFavorite(item),
                   ),
@@ -771,29 +690,23 @@ class _AzkarListState extends State<AzkarList> {
           ),
           if (!isDone && index == 0 && item.current == item.max)
             Container(
-              margin: const EdgeInsets.only(top: 12),
-              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(top: AppSpace.md),
+              padding: const EdgeInsets.all(AppSpace.md),
               decoration: BoxDecoration(
-                color: Colors.blueAccent.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Colors.blueAccent.withValues(alpha: 0.3),
-                ),
+                color: p.accentSoft,
+                borderRadius: BorderRadius.circular(AppRadius.chip),
+                border: Border.all(color: p.border),
               ),
               child: Row(
                 children: [
-                  const Icon(
-                    Icons.info_outline,
-                    color: Colors.blueAccent,
-                    size: 20,
-                  ),
+                  Icon(Icons.info_outline, color: p.accent, size: 20),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       'اضغط على "باقي: ${item.current}" لبدء العد',
                       textAlign: TextAlign.right,
-                      style: const TextStyle(
-                        color: Colors.blueAccent,
+                      style: TextStyle(
+                        color: p.textMuted,
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                       ),
@@ -823,12 +736,16 @@ class _CompletionStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
     return Column(
       children: [
         Icon(icon, color: color, size: 28),
         const SizedBox(height: 5),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
-        Text(label, style: const TextStyle(fontSize: 12)),
+        Text(
+          value,
+          style: TextStyle(fontWeight: FontWeight.bold, color: p.text),
+        ),
+        Text(label, style: TextStyle(fontSize: 12, color: p.textMuted)),
       ],
     );
   }
@@ -841,24 +758,25 @@ class _SourceBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.blueAccent.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.3)),
+        color: p.surfaceAlt,
+        borderRadius: BorderRadius.circular(AppRadius.small),
+        border: Border.all(color: p.border),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.menu_book, size: 14, color: Colors.blueAccent),
+          Icon(Icons.menu_book, size: 14, color: p.textMuted),
           const SizedBox(width: 6),
           Flexible(
             child: Text(
               source,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: Colors.blueAccent,
+                color: p.textMuted,
                 fontWeight: FontWeight.w500,
               ),
               textAlign: TextAlign.right,
@@ -871,25 +789,20 @@ class _SourceBadge extends StatelessWidget {
 }
 
 class _EmptyAzkarState extends StatelessWidget {
-  final bool isDark;
-
-  const _EmptyAzkarState({required this.isDark});
+  const _EmptyAzkarState();
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.search_off,
-            size: 60,
-            color: isDark ? Colors.white24 : Colors.black26,
-          ),
-          const SizedBox(height: 12),
+          Icon(Icons.star_border, size: 60, color: p.textFaint),
+          const SizedBox(height: AppSpace.md),
           Text(
-            'لا توجد نتائج',
-            style: TextStyle(color: isDark ? Colors.white54 : Colors.black54),
+            'مفيش أذكار مفضلة في القسم ده',
+            style: TextStyle(color: p.textMuted),
           ),
         ],
       ),

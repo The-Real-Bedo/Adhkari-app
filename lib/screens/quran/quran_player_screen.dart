@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../models/quran_models.dart';
 import '../../services/quran_audio_handler.dart';
 import '../../services/quran_audio_service.dart';
+import '../../theme/app_theme.dart';
 
 /// شاشة المشغل الكاملة.
 ///
@@ -108,50 +109,46 @@ class _QuranPlayerScreenState extends State<QuranPlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final accent = isDark ? Colors.cyanAccent : const Color(0xFF00838F);
+    final p = context.palette;
 
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('الاستماع'),
-          centerTitle: true,
-        ),
+        appBar: AppBar(title: const Text('الاستماع')),
         body: _loadError != null
-            ? _buildError(accent)
+            ? _buildError(p)
             : StreamBuilder<MediaItem?>(
                 stream: _handler.mediaItem,
                 builder: (context, snapshot) {
                   final item = snapshot.data;
                   if (_starting && item == null) {
                     return Center(
-                      child: CircularProgressIndicator(color: accent),
+                      child: CircularProgressIndicator(color: p.primary),
                     );
                   }
-                  return _buildPlayer(item, isDark, accent);
+                  return _buildPlayer(item, p);
                 },
               ),
       ),
     );
   }
 
-  Widget _buildError(Color accent) {
+  Widget _buildError(AppPalette p) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppSpace.xl),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 56, color: Colors.redAccent),
-            const SizedBox(height: 16),
+            Icon(Icons.error_outline, size: 56, color: p.danger),
+            const SizedBox(height: AppSpace.lg),
             Text(
               _loadError!,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 16),
+              style: context.type.bodyLarge,
             ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
+            const SizedBox(height: AppSpace.xl),
+            FilledButton.icon(
               onPressed: () {
                 setState(() {
                   _loadError = null;
@@ -161,10 +158,6 @@ class _QuranPlayerScreenState extends State<QuranPlayerScreen> {
               },
               icon: const Icon(Icons.refresh),
               label: const Text('إعادة المحاولة'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: accent,
-                foregroundColor: Colors.black,
-              ),
             ),
           ],
         ),
@@ -172,9 +165,9 @@ class _QuranPlayerScreenState extends State<QuranPlayerScreen> {
     );
   }
 
-  Widget _buildPlayer(MediaItem? item, bool isDark, Color accent) {
+  Widget _buildPlayer(MediaItem? item, AppPalette p) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpace.xl),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -184,32 +177,33 @@ class _QuranPlayerScreenState extends State<QuranPlayerScreen> {
             height: 180,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: accent.withValues(alpha: 0.12),
-              border: Border.all(color: accent.withValues(alpha: 0.4), width: 2),
+              color: p.primarySoft,
+              border: Border.all(color: p.border, width: 1),
             ),
-            child: Icon(Icons.menu_book, size: 80, color: accent),
+            child: Icon(Icons.menu_book, size: 76, color: p.primary),
           ),
           const SizedBox(height: 28),
 
+          // اسم السورة بخط أميري — نص قرآني
           Text(
             item?.title ?? '—',
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            style: QuranTextStyle.amiri(color: p.text, fontSize: 26),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpace.sm),
           Text(
             item?.artist ?? widget.reciter?.name ?? '',
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 14, color: Colors.grey),
+            style: TextStyle(fontSize: 14, color: p.textMuted),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpace.xl),
 
-          _SeekBar(handler: _handler, accent: accent, duration: item?.duration),
-          const SizedBox(height: 8),
+          _SeekBar(handler: _handler, palette: p, duration: item?.duration),
+          const SizedBox(height: AppSpace.sm),
 
           // شريط أوضاع التكرار والعشوائي ومؤقت النوم
-          _ModeBar(handler: _handler, accent: accent),
-          const SizedBox(height: 4),
+          _ModeBar(handler: _handler, palette: p),
+          const SizedBox(height: AppSpace.xs),
 
           // أزرار التحكم بتتبني من playbackState عشان تتزامن مع الإشعار
           StreamBuilder<PlaybackState>(
@@ -229,42 +223,46 @@ class _QuranPlayerScreenState extends State<QuranPlayerScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   IconButton(
-                    iconSize: 38,
+                    iconSize: 34,
+                    color: p.text,
+                    disabledColor: p.textFaint,
                     icon: const Icon(Icons.skip_previous),
                     // في RTL الترتيب بيتقلب بصريًا، لكن السابق يفضل سابق
                     onPressed: index > 0
                         ? () => _handler.skipToPrevious()
                         : null,
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: AppSpace.lg),
                   Container(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: accent,
+                      color: p.primary,
                     ),
                     child: isBusy
                         ? Padding(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(AppSpace.lg),
                             child: SizedBox(
                               width: 32,
                               height: 32,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2.5,
-                                color: isDark ? Colors.black : Colors.white,
+                                color: p.onPrimary,
                               ),
                             ),
                           )
                         : IconButton(
                             iconSize: 44,
-                            color: isDark ? Colors.black : Colors.white,
+                            color: p.onPrimary,
                             icon: Icon(playing ? Icons.pause : Icons.play_arrow),
                             onPressed: () =>
                                 playing ? _handler.pause() : _handler.play(),
                           ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: AppSpace.lg),
                   IconButton(
-                    iconSize: 38,
+                    iconSize: 34,
+                    color: p.text,
+                    disabledColor: p.textFaint,
                     icon: const Icon(Icons.skip_next),
                     onPressed: index < total - 1
                         ? () => _handler.skipToNext()
@@ -283,9 +281,9 @@ class _QuranPlayerScreenState extends State<QuranPlayerScreen> {
 /// شريط التكرار والعشوائي ومؤقت النوم
 class _ModeBar extends StatelessWidget {
   final QuranAudioHandler handler;
-  final Color accent;
+  final AppPalette palette;
 
-  const _ModeBar({required this.handler, required this.accent});
+  const _ModeBar({required this.handler, required this.palette});
 
   @override
   Widget build(BuildContext context) {
@@ -317,7 +315,7 @@ class _ModeBar extends StatelessWidget {
                     QuranRepeatMode.off => 'بدون تكرار',
                   },
                   active: handler.repeatMode != QuranRepeatMode.off,
-                  accent: accent,
+                  palette: palette,
                   onTap: () => _pickRepeatMode(context),
                 ),
 
@@ -326,7 +324,7 @@ class _ModeBar extends StatelessWidget {
                   icon: Icons.shuffle,
                   label: 'عشوائي',
                   active: handler.shuffleEnabled,
-                  accent: accent,
+                  palette: palette,
                   onTap: () => handler.setShuffle(!handler.shuffleEnabled),
                 ),
 
@@ -339,7 +337,7 @@ class _ModeBar extends StatelessWidget {
                       ? 'آخر السورة'
                       : 'مؤقت النوم',
                   active: sleepOn,
-                  accent: accent,
+                  palette: palette,
                   onTap: () => _pickSleepTimer(context),
                 ),
               ],
@@ -356,72 +354,90 @@ class _ModeBar extends StatelessWidget {
     return '$m:$s';
   }
 
-  Future<void> _pickRepeatMode(BuildContext context) async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  /// عنوان الدرج السفلي — نفس الشكل في التكرار والمؤقت
+  Widget _sheetTitle(String text) {
+    return Padding(
+      padding: const EdgeInsets.all(AppSpace.lg),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+          color: palette.text,
+        ),
+      ),
+    );
+  }
 
+  Future<void> _pickRepeatMode(BuildContext context) async {
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: isDark ? const Color(0xFF121212) : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      backgroundColor: palette.surface,
       builder: (sheetContext) => Directionality(
         textDirection: TextDirection.rtl,
         child: SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Padding(
-                padding: EdgeInsets.all(16),
-                child: Text(
-                  'وضع التكرار',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ),
+              _sheetTitle('وضع التكرار'),
               ListTile(
-                leading: const Icon(Icons.repeat),
+                leading: Icon(Icons.repeat, color: palette.textMuted),
                 title: const Text('بدون تكرار'),
                 selected: handler.repeatMode == QuranRepeatMode.off,
+                selectedColor: palette.primary,
                 onTap: () {
                   handler.setQuranRepeatMode(QuranRepeatMode.off);
                   Navigator.pop(sheetContext);
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.repeat_one),
+                leading: Icon(Icons.repeat_one, color: palette.textMuted),
                 title: const Text('تكرار السورة الحالية'),
-                subtitle: const Text('مفيد في الحفظ'),
+                subtitle: Text(
+                  'مفيد في الحفظ',
+                  style: TextStyle(color: palette.textMuted),
+                ),
                 selected: handler.repeatMode == QuranRepeatMode.one,
+                selectedColor: palette.primary,
                 onTap: () {
                   handler.setQuranRepeatMode(QuranRepeatMode.one);
                   Navigator.pop(sheetContext);
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.repeat_on),
+                leading: Icon(Icons.repeat_on, color: palette.textMuted),
                 title: const Text('تكرار كل السور'),
-                subtitle: const Text('بعد آخر سورة يرجع لأولها'),
+                subtitle: Text(
+                  'بعد آخر سورة يرجع لأولها',
+                  style: TextStyle(color: palette.textMuted),
+                ),
                 selected: handler.repeatMode == QuranRepeatMode.all,
+                selectedColor: palette.primary,
                 onTap: () {
                   handler.setQuranRepeatMode(QuranRepeatMode.all);
                   Navigator.pop(sheetContext);
                 },
               ),
-              const Divider(height: 8),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              Divider(height: AppSpace.sm, color: palette.border),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpace.lg,
+                  vertical: AppSpace.sm,
+                ),
                 child: Align(
                   alignment: Alignment.centerRight,
                   child: Text(
                     'كرر السورة عدد مرات محدد',
-                    style: TextStyle(fontSize: 13, color: Colors.grey),
+                    style: TextStyle(fontSize: 13, color: palette.textMuted),
                   ),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpace.lg, 0, AppSpace.lg, AppSpace.lg,
+                ),
                 child: Wrap(
-                  spacing: 8,
+                  spacing: AppSpace.sm,
                   children: [3, 5, 7, 10].map((times) {
                     final selected =
                         handler.repeatMode == QuranRepeatMode.count &&
@@ -429,7 +445,19 @@ class _ModeBar extends StatelessWidget {
                     return ChoiceChip(
                       label: Text('$times مرات'),
                       selected: selected,
-                      selectedColor: accent.withValues(alpha: 0.3),
+                      showCheckmark: false,
+                      backgroundColor: palette.surfaceAlt,
+                      selectedColor: palette.primarySoft,
+                      side: BorderSide(
+                        color: selected ? palette.primary : palette.border,
+                      ),
+                      labelStyle: TextStyle(
+                        color: selected ? palette.primary : palette.text,
+                        fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: AppRadius.pillR,
+                      ),
                       onSelected: (_) {
                         handler.setQuranRepeatMode(
                           QuranRepeatMode.count,
@@ -449,35 +477,30 @@ class _ModeBar extends StatelessWidget {
   }
 
   Future<void> _pickSleepTimer(BuildContext context) async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: isDark ? const Color(0xFF121212) : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      backgroundColor: palette.surface,
       builder: (sheetContext) => Directionality(
         textDirection: TextDirection.rtl,
         child: SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Padding(
-                padding: EdgeInsets.all(16),
-                child: Text(
-                  'مؤقت النوم',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ),
+              _sheetTitle('مؤقت النوم'),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpace.lg),
                 child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                  spacing: AppSpace.sm,
+                  runSpacing: AppSpace.sm,
                   children: [5, 10, 15, 30, 45, 60].map((minutes) {
                     return ActionChip(
                       label: Text('$minutes دقيقة'),
+                      backgroundColor: palette.surfaceAlt,
+                      side: BorderSide(color: palette.border),
+                      labelStyle: TextStyle(color: palette.text),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: AppRadius.pillR,
+                      ),
                       onPressed: () {
                         handler.startSleepTimer(Duration(minutes: minutes));
                         Navigator.pop(sheetContext);
@@ -486,9 +509,9 @@ class _ModeBar extends StatelessWidget {
                   }).toList(),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpace.sm),
               ListTile(
-                leading: const Icon(Icons.menu_book),
+                leading: Icon(Icons.menu_book, color: palette.textMuted),
                 title: const Text('بعد نهاية السورة الحالية'),
                 onTap: () {
                   handler.sleepAfterCurrentSurah();
@@ -497,17 +520,17 @@ class _ModeBar extends StatelessWidget {
               ),
               if (handler.sleepTimerActive)
                 ListTile(
-                  leading: const Icon(Icons.close, color: Colors.redAccent),
-                  title: const Text(
+                  leading: Icon(Icons.close, color: palette.danger),
+                  title: Text(
                     'إلغاء المؤقت',
-                    style: TextStyle(color: Colors.redAccent),
+                    style: TextStyle(color: palette.danger),
                   ),
                   onTap: () {
                     handler.cancelSleepTimer();
                     Navigator.pop(sheetContext);
                   },
                 ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpace.sm),
             ],
           ),
         ),
@@ -520,32 +543,42 @@ class _ModeButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool active;
-  final Color accent;
+  final AppPalette palette;
   final VoidCallback onTap;
 
   const _ModeButton({
     required this.icon,
     required this.label,
     required this.active,
-    required this.accent,
+    required this.palette,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final color = active ? accent : Colors.grey;
+    final color = active ? palette.primary : palette.textFaint;
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: AppRadius.chipR,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpace.md,
+          vertical: AppSpace.sm,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 22, color: color),
             const SizedBox(height: 3),
-            Text(label, style: TextStyle(fontSize: 10, color: color)),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                color: color,
+                fontWeight: active ? FontWeight.w700 : FontWeight.w400,
+              ),
+            ),
           ],
         ),
       ),
@@ -556,12 +589,12 @@ class _ModeButton extends StatelessWidget {
 /// شريط التقدم — بيقرأ الموضع من المشغل ويسمح بالسحب
 class _SeekBar extends StatefulWidget {
   final QuranAudioHandler handler;
-  final Color accent;
+  final AppPalette palette;
   final Duration? duration;
 
   const _SeekBar({
     required this.handler,
-    required this.accent,
+    required this.palette,
     required this.duration,
   });
 
@@ -575,6 +608,7 @@ class _SeekBarState extends State<_SeekBar> {
 
   @override
   Widget build(BuildContext context) {
+    final p = widget.palette;
     final total = widget.duration ?? Duration.zero;
 
     return StreamBuilder<Duration>(
@@ -592,8 +626,11 @@ class _SeekBarState extends State<_SeekBar> {
                 thumbShape: const RoundSliderThumbShape(
                   enabledThumbRadius: 7,
                 ),
-                activeTrackColor: widget.accent,
-                thumbColor: widget.accent,
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+                activeTrackColor: p.primary,
+                inactiveTrackColor: p.border,
+                thumbColor: p.primary,
+                overlayColor: p.primarySoft,
               ),
               child: Slider(
                 min: 0,
@@ -614,17 +651,17 @@ class _SeekBarState extends State<_SeekBar> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpace.sm),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     _format(position),
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    style: TextStyle(fontSize: 12, color: p.textMuted),
                   ),
                   Text(
                     _format(total),
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    style: TextStyle(fontSize: 12, color: p.textMuted),
                   ),
                 ],
               ),

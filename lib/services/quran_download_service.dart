@@ -243,19 +243,14 @@ class QuranDownloadService {
     return result;
   }
 
-  /// إجمالي المساحة المستخدمة بالبايت
-  static Future<int> totalBytes() async {
-    final files = await listDownloads();
-    return files.fold<int>(0, (sum, f) => sum + f.bytes);
-  }
-
   /// مسح كل التحميلات
   static Future<void> deleteAll() async {
     final dir = await _downloadsDir();
     if (await dir.exists()) await dir.delete(recursive: true);
   }
 
-  /// تنسيق الحجم بالعربي: "12.4 ميجابايت"
+  /// تنسيق الحجم بالعربي: "12.4 ميجابايت".
+  /// بيتعرض قبل التحميل بس — عشان المستخدم يعرف هياكل قد إيه من الباقة.
   static String formatBytes(int? bytes) {
     if (bytes == null || bytes <= 0) return 'غير معروف';
 

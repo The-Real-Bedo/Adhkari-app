@@ -18,6 +18,13 @@ dependencies:
   timezone: ^0.9.4
   flutter_timezone: ^5.0.2 # 👈 لازم تضيف السطر ده هنا بالظبط
 
+  # مكتبة القرآن الصوتية — الصوت من mp3quran.net
+  http: ^1.2.2 # طلبات الـ API
+  just_audio: ^0.9.42 # تشغيل الصوت والبث
+  audio_service: ^0.18.15 # التحكم من الإشعار وشاشة القفل
+  audio_session: ^0.1.21 # إعداد الجلسة الصوتية
+  path_provider: ^2.1.5 # مسار حفظ التلاوات للاستماع بدون إنترنت
+
 
 
 dev_dependencies:
