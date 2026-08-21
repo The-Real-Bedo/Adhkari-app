@@ -5,6 +5,7 @@ import '../../models/quran_models.dart';
 import '../../services/quran_audio_handler.dart';
 import '../../services/quran_audio_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/audio_visuals.dart';
 
 /// شاشة المشغل الكاملة.
 ///
@@ -171,16 +172,25 @@ class _QuranPlayerScreenState extends State<QuranPlayerScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // دائرة فيها أيقونة — بديل بسيط عن صورة الغلاف
-          Container(
-            width: 180,
-            height: 180,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: p.primarySoft,
-              border: Border.all(color: p.border, width: 1),
+          // دائرة فيها أيقونة — بديل بسيط عن صورة الغلاف. الهالة حواليها
+          // بتنبض طول ما التلاوة شغالة وبتتلاشى مع الإيقاف.
+          StreamBuilder<PlaybackState>(
+            stream: _handler.playbackState,
+            builder: (context, snapshot) => AudioPulse(
+              playing: snapshot.data?.playing ?? false,
+              size: 180,
+              color: p.primary,
+              child: Container(
+                width: 180,
+                height: 180,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: p.primarySoft,
+                  border: Border.all(color: p.border, width: 1),
+                ),
+                child: Icon(Icons.menu_book, size: 76, color: p.primary),
+              ),
             ),
-            child: Icon(Icons.menu_book, size: 76, color: p.primary),
           ),
           const SizedBox(height: 28),
 
@@ -636,7 +646,7 @@ class _SeekBarState extends State<_SeekBar> {
                 min: 0,
                 // لو المدة لسه مش معروفة نحمي الـ Slider من max = 0
                 max: maxMs > 0 ? maxMs : 1,
-                value: _dragValue ?? currentMs,
+                value: (_dragValue ?? currentMs).clamp(0.0, maxMs > 0 ? maxMs : 1.0).toDouble(),
                 onChanged: maxMs > 0
                     ? (value) => setState(() => _dragValue = value)
                     : null,

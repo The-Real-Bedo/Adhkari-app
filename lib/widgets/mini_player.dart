@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../services/quran_audio_service.dart';
 import '../theme/app_theme.dart';
+import 'audio_visuals.dart';
 
 /// شريط تشغيل مصغر بيظهر فوق شريط التنقل في كل التبويبات
 /// طول ما فيه تلاوة شغالة. بيختفي تمامًا لو مفيش حاجة بتتشغل.
@@ -58,7 +59,23 @@ class MiniPlayer extends StatelessWidget {
                         CircleAvatar(
                           radius: 20,
                           backgroundColor: p.primarySoft,
-                          child: Icon(Icons.menu_book, size: 20, color: p.primary),
+                          // وهي شغالة بتبقى أعمدة متحركة بدل الأيقونة —
+                          // إشارة إن الصوت ماشي حتى لو الشاشة ساكتة
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 220),
+                            child: playing
+                                ? EqualizerBars(
+                                    key: const ValueKey('bars'),
+                                    playing: true,
+                                    color: p.primary,
+                                  )
+                                : Icon(
+                                    Icons.menu_book,
+                                    key: const ValueKey('icon'),
+                                    size: 20,
+                                    color: p.primary,
+                                  ),
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
