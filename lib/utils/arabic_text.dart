@@ -72,3 +72,28 @@ bool arabicContains(String haystack, String needle) {
   if (n.isEmpty) return true;
   return normalizeArabic(haystack).contains(n);
 }
+
+const List<String> _arabicIndicDigits = [
+  '٠',
+  '١',
+  '٢',
+  '٣',
+  '٤',
+  '٥',
+  '٦',
+  '٧',
+  '٨',
+  '٩',
+];
+
+/// أرقام هندية عربية — ١٢٣ بدل 123.
+///
+/// باقي التطبيق بيستخدم الأرقام الغربية، لكن علامة الآية في المصحف
+/// بتتكتب بالهندية دايمًا، فالدالة دي مخصوصة للمصحف مش للواجهة كلها.
+String toArabicIndic(int value) {
+  final buffer = StringBuffer(value < 0 ? '-' : '');
+  for (final char in value.abs().toString().split('')) {
+    buffer.write(_arabicIndicDigits[int.parse(char)]);
+  }
+  return buffer.toString();
+}
