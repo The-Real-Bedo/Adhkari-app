@@ -24,11 +24,6 @@ class _AzkarPageState extends State<AzkarPage> {
   final List<_AzkarSection> _sections = [
     _AzkarSection('الصباح', 'morning', AzkarData.morningAzkar),
     _AzkarSection('المساء', 'evening', AzkarData.eveningAzkar),
-    _AzkarSection('النوم', 'sleep', AzkarData.sleepAzkar),
-    _AzkarSection('الاستيقاظ', 'wake', AzkarData.wakeAzkar),
-    _AzkarSection('بعد الصلاة', 'after_prayer', AzkarData.afterPrayerAzkar),
-    _AzkarSection('أدعية', 'dua', AzkarData.selectedDua),
-    _AzkarSection('الرقية', 'ruqyah', AzkarData.ruqyahAzkar),
   ];
 
   @override
@@ -52,7 +47,6 @@ class _AzkarPageState extends State<AzkarPage> {
             ),
           ],
           bottom: TabBar(
-            isScrollable: true,
             indicatorColor: p.primary,
             labelColor: p.text,
             unselectedLabelColor: p.textMuted,
@@ -99,25 +93,22 @@ class _AzkarListState extends State<AzkarList> {
   int _currentStreak = 0;
   int _totalCompleted = 0;
   String _lastCompletionDate = '';
-  bool _sortCompletedLast = false;
   bool _favoritesOnly = false;
   Set<String> _favorites = {};
 
   @override
   void initState() {
     super.initState();
-    _loadProgress();
+    _loadProgress().then((_) => _checkDailyReset());
     _loadStats();
     _loadFavorites();
-    _checkDailyReset();
   }
 
   @override
   void didUpdateWidget(covariant AzkarList oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.type != widget.type) {
-      _loadProgress();
-      _checkDailyReset();
+      _loadProgress().then((_) => _checkDailyReset());
     }
   }
 
@@ -200,17 +191,6 @@ class _AzkarListState extends State<AzkarList> {
       await prefs.setString('azkar_${widget.type}_last_reset', today);
       await _saveProgress();
     }
-  }
-
-  void _completeAll() {
-    HapticFeedback.mediumImpact();
-    setState(() {
-      for (final item in widget.items) {
-        item.current = 0;
-      }
-    });
-    _saveProgress();
-    _showCompletionDialog();
   }
 
   void _toggleFavorite(Zikr item) {
@@ -418,7 +398,7 @@ class _AzkarListState extends State<AzkarList> {
           const SizedBox(width: 14),
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(label, style: TextStyle(color: p.textMuted)),
                 const SizedBox(height: 3),
@@ -437,19 +417,13 @@ class _AzkarListState extends State<AzkarList> {
     );
   }
 
+  /// المعروض دلوقتي — المفضلة بس أو الكل. مفيش ترتيب بالمكتمل: الأذكار
+  /// ليها ترتيب متعارف عليه في الورد، ومحدش المفروض يعيد ترتيبه.
   List<Zikr> _getDisplayItems() {
-    Iterable<Zikr> result = widget.items;
-
-    if (_favoritesOnly) {
-      result = result.where((item) => _favorites.contains(item.text));
-    }
-
-    final items = result.toList();
-    if (!_sortCompletedLast) return items;
-
-    final incomplete = items.where((item) => item.current > 0).toList();
-    final complete = items.where((item) => item.current == 0).toList();
-    return [...incomplete, ...complete];
+    if (!_favoritesOnly) return widget.items;
+    return widget.items
+        .where((item) => _favorites.contains(item.text))
+        .toList();
   }
 
   @override
@@ -472,11 +446,6 @@ class _AzkarListState extends State<AzkarList> {
               Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.done_all, size: 20),
-                    tooltip: 'إتمام الكل',
-                    onPressed: _completeAll,
-                  ),
-                  IconButton(
                     icon: Icon(
                       _favoritesOnly ? Icons.star : Icons.star_border,
                       size: 22,
@@ -490,13 +459,6 @@ class _AzkarListState extends State<AzkarList> {
                     icon: const Icon(Icons.bar_chart, size: 20),
                     tooltip: 'الإحصائيات',
                     onPressed: _showStatsDialog,
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.sort, size: 20),
-                    tooltip: 'ترتيب المكتمل',
-                    onPressed: () => setState(
-                      () => _sortCompletedLast = !_sortCompletedLast,
-                    ),
                   ),
                   const Spacer(),
                   Row(
@@ -575,12 +537,12 @@ class _AzkarListState extends State<AzkarList> {
         ),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Opacity(
             opacity: isDone ? 0.45 : 1.0,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   item.text,

@@ -407,7 +407,7 @@ class _TasbihHomeState extends State<TasbihHome>
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 TextField(
                   textAlign: TextAlign.right,
@@ -585,7 +585,7 @@ class _TasbihHomeState extends State<TasbihHome>
                             border: Border.all(color: p.border),
                           ),
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
                                 mainAxisAlignment:
@@ -713,15 +713,10 @@ class _TasbihHomeState extends State<TasbihHome>
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    const Spacer(),
                     Text(
                       "إعدادات التسبيح",
                       style: TextStyle(
@@ -729,6 +724,11 @@ class _TasbihHomeState extends State<TasbihHome>
                         fontWeight: FontWeight.bold,
                         color: p.text,
                       ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
                     ),
                   ],
                 ),
@@ -1374,7 +1374,7 @@ class _TasbihHomeState extends State<TasbihHome>
                             const SizedBox(width: AppSpace.xs),
                             Expanded(
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     "هدف اليوم: $_dailyCounter / $_dailyTarget",
