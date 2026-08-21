@@ -200,7 +200,18 @@ class AppSpace {
 
 /// امتداد بسيط عشان الوصول للوحة من أي مكان: `context.palette.primary`
 extension AppThemeExt on BuildContext {
-  AppPalette get palette => Theme.of(this).extension<AppPalette>()!;
+  /// بترجع لوحة الثيم الحالي.
+  ///
+  /// كانت بتعمل `!` على نتيجة `extension<AppPalette>()`، واللي بيرمي
+  /// null-check error في أي شجرة الثيم فيها مش بتاعنا — مثلًا Theme
+  /// متغيّر جوّه widget معين، أو widget بيتختبر لوحده. بنقع على لوحة
+  /// اللون الصح حسب السطوع بدل ما التطبيق يقع.
+  AppPalette get palette =>
+      Theme.of(this).extension<AppPalette>() ??
+      (Theme.of(this).brightness == Brightness.dark
+          ? AppPalette.dark
+          : AppPalette.light);
+
   TextTheme get type => Theme.of(this).textTheme;
 }
 
@@ -212,8 +223,9 @@ extension AppThemeExt on BuildContext {
 class AppThemeData {
   const AppThemeData._();
 
-  static ThemeData light = _build(AppPalette.light, Brightness.light);
-  static ThemeData dark = _build(AppPalette.dark, Brightness.dark);
+  // final: الثيم بيتبني مرة واحدة ومحدش المفروض يعيد تعيينه من بره
+  static final ThemeData light = _build(AppPalette.light, Brightness.light);
+  static final ThemeData dark = _build(AppPalette.dark, Brightness.dark);
 
   static ThemeData _build(AppPalette p, Brightness brightness) {
     final bool isDark = brightness == Brightness.dark;
