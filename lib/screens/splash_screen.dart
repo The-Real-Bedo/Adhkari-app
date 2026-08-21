@@ -25,6 +25,17 @@ class _CustomSplashScreenState extends State<CustomSplashScreen>
 
   final String _arabicText = "أَذْكَارِي";
 
+  /// الخط بيتبنى مرة واحدة عن قصد.
+  ///
+  /// `GoogleFonts.scheherazadeNew()` بتعمل بحث في جدول العائلات وبتبني
+  /// TextStyle جديد. قبل كده كانت بتتنده مرتين جوّه كل frame (طبقة الظل
+  /// وطبقة التدرّج)، يعني 240 مرة في الثانية على شاشة 120Hz.
+  late final TextStyle _baseCalligraphy = GoogleFonts.scheherazadeNew(
+    fontSize: 104,
+    fontWeight: FontWeight.w700,
+    height: 1.45,
+  );
+
   Timer? _detailsTimer;
   Timer? _navigationTimer;
 
@@ -34,7 +45,7 @@ class _CustomSplashScreenState extends State<CustomSplashScreen>
 
     _revealController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2600),
+      duration: const Duration(milliseconds: 2000),
     );
 
     _lightController = AnimationController(
@@ -55,11 +66,13 @@ class _CustomSplashScreenState extends State<CustomSplashScreen>
     _revealController.forward();
     _lightController.repeat(reverse: true);
 
-    _detailsTimer = Timer(const Duration(milliseconds: 1900), () {
+    _detailsTimer = Timer(const Duration(milliseconds: 1200), () {
       if (mounted) _detailsController.forward();
     });
 
-    _navigationTimer = Timer(const Duration(milliseconds: 4700), () {
+    // 2.6 ثانية بدل 4.7. الكشف بيخلص عند 2.0 والتفاصيل بتظهر من 1.2،
+    // فالمستخدم شاف كل حاجة قبل الانتقال — الوقت الزيادة كان استنى فاضي.
+    _navigationTimer = Timer(const Duration(milliseconds: 2600), () {
       if (!mounted || !context.mounted) return;
 
       Navigator.of(context).pushReplacement(
@@ -89,20 +102,21 @@ class _CustomSplashScreenState extends State<CustomSplashScreen>
   Widget build(BuildContext context) {
     final _SplashColors c = _SplashColors.of(context);
 
+    // الشجرة مقسومة لتلات أجزاء بتتحرك كل واحد لوحده، بدل AnimatedBuilder
+    // واحد كان بيلفّ الشاشة كلها. قبل كده كل frame كان بيعيد بناء الخلفية
+    // والهالة والاسم والخط الفاصل ونص "ADHKARI" — وده اللي كان بيسقّط
+    // إطارات في أول التشغيل.
     return Scaffold(
       backgroundColor: c.ground,
-      body: AnimatedBuilder(
-        animation: Listenable.merge([_revealController, _lightController]),
-        builder: (context, child) {
-          final double reveal = Curves.easeInOutCubic.transform(
-            _revealController.value,
-          );
-          final double breath = math.sin(_lightController.value * math.pi);
-
-          return Stack(
-            fit: StackFit.expand,
-            children: [
-              DecoratedBox(
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // ————— 1) الخلفية: بتهمّها النَفَس بس —————
+          AnimatedBuilder(
+            animation: _lightController,
+            builder: (context, _) {
+              final double breath = math.sin(_lightController.value * math.pi);
+              return DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: RadialGradient(
                     center: const Alignment(0.15, -0.25),
@@ -115,60 +129,90 @@ class _CustomSplashScreenState extends State<CustomSplashScreen>
                     stops: const [0.0, 0.46, 1.0],
                   ),
                 ),
+              );
+            },
+          ),
+
+          // ————— 2) الهالة —————
+          // الـ painter مربوط بالـ controller بنفسه (repaint:)، فمحتاجش
+          // AnimatedBuilder يعيد بناء widget كل frame — بيرسم وبس.
+          // و RepaintBoundary بتعزل الرسم ده عن باقي الشاشة.
+          RepaintBoundary(
+            child: CustomPaint(
+              painter: _IslamicAuraPainter(
+                progress: _lightController,
+                color: c.halo,
+                baseAlpha: c.auraAlpha,
+                swing: c.auraSwing,
               ),
-              CustomPaint(
-                painter: _IslamicAuraPainter(
-                  progress: _lightController.value,
-                  color: c.halo.withValues(
-                    alpha: c.auraAlpha + (breath * c.auraSwing),
-                  ),
-                ),
-              ),
-              Center(
-                child: Transform.translate(
-                  offset: Offset(0, -18 + ((1 - reveal) * 16)),
+            ),
+          ),
+
+          // ————— 3) الاسم —————
+          Center(
+            child: RepaintBoundary(
+              child: AnimatedBuilder(
+                animation: Listenable.merge([
+                  _revealController,
+                  _lightController,
+                ]),
+                // الخط الفاصل ونص "ADHKARI" بيتمرروا كـ child، فبيتبنوا
+                // مرة واحدة بس. لولا كده كان GoogleFonts.raleway بتتنده
+                // في كل frame.
+                child: FadeTransition(
+                  opacity: _detailsFade,
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      _buildCalligraphy(c, reveal, breath),
-                      const SizedBox(height: 22),
-                      FadeTransition(
-                        opacity: _detailsFade,
-                        child: Column(
-                          children: [
-                            Container(
-                              width: 148,
-                              height: 1,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Colors.transparent,
-                                    c.halo.withValues(alpha: 0.85),
-                                    Colors.transparent,
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 18),
-                            Text(
-                              "A D H K A R I",
-                              style: GoogleFonts.raleway(
-                                fontSize: 13,
-                                color: c.subtitle,
-                                letterSpacing: 9,
-                                fontWeight: FontWeight.w300,
-                              ),
-                            ),
-                          ],
+                      Container(
+                        width: 148,
+                        height: 1,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.transparent,
+                              c.halo.withValues(alpha: 0.85),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      Text(
+                        "A D H K A R I",
+                        style: GoogleFonts.raleway(
+                          fontSize: 13,
+                          color: c.subtitle,
+                          letterSpacing: 9,
+                          fontWeight: FontWeight.w300,
                         ),
                       ),
                     ],
                   ),
                 ),
+                builder: (context, child) {
+                  final double reveal = Curves.easeInOutCubic.transform(
+                    _revealController.value,
+                  );
+                  final double breath = math.sin(
+                    _lightController.value * math.pi,
+                  );
+
+                  return Transform.translate(
+                    offset: Offset(0, -18 + ((1 - reveal) * 16)),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildCalligraphy(c, reveal, breath),
+                        const SizedBox(height: 22),
+                        child!,
+                      ],
+                    ),
+                  );
+                },
               ),
-            ],
-          );
-        },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -236,10 +280,9 @@ class _CustomSplashScreenState extends State<CustomSplashScreen>
     required Color color,
     required double blur,
   }) {
-    return GoogleFonts.scheherazadeNew(
-      fontSize: 104,
-      fontWeight: FontWeight.w700,
-      height: 1.45,
+    // بنبني على الخط المحسوب مرة واحدة في [_baseCalligraphy] — اللي بيتغير
+    // كل frame هو اللون وقوة البلور بس.
+    return _baseCalligraphy.copyWith(
       color: color,
       shadows: [
         Shadow(
@@ -331,33 +374,53 @@ class _SplashColors {
   );
 }
 
+/// الهالة الزخرفية ورا الاسم.
+///
+/// بتاخد الـ [Animation] نفسها وبتمررها لـ `super(repaint:)`، فبترسم لوحدها
+/// كل frame من غير ما أي widget يعيد البناء. اللون بيتحسب جوّه [paint]
+/// عشان الـ painter مايتغيّرش مع كل قيمة جديدة.
 class _IslamicAuraPainter extends CustomPainter {
-  final double progress;
+  final Animation<double> progress;
   final Color color;
+  final double baseAlpha;
+  final double swing;
 
-  const _IslamicAuraPainter({required this.progress, required this.color});
+  /// عدد نقط الحلقة. الشكل فيه 8 فصوص، و64 نقطة تكفي إنها تبان ناعمة —
+  /// 96 كانت شغل زيادة في كل frame من غير فرق واضح.
+  static const int _segments = 64;
+
+  const _IslamicAuraPainter({
+    required this.progress,
+    required this.color,
+    required this.baseAlpha,
+    required this.swing,
+  }) : super(repaint: progress);
 
   @override
   void paint(Canvas canvas, Size size) {
+    final double t = progress.value;
+    final double breath = math.sin(t * math.pi);
+    final Color tint = color.withValues(alpha: baseAlpha + (breath * swing));
+
     final Offset center = size.center(Offset.zero);
     final double base = math.min(size.width, size.height) * 0.36;
 
     final Paint ringPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.7
-      ..color = color;
+      ..color = tint;
 
     canvas.save();
     canvas.translate(center.dx, center.dy - 42);
-    canvas.rotate((progress - 0.5) * 0.08);
+    canvas.rotate((t - 0.5) * 0.08);
 
     for (int layer = 0; layer < 3; layer++) {
       final double radius = base + (layer * 34);
       final Path path = Path();
 
-      for (int i = 0; i <= 96; i++) {
-        final double angle = (math.pi * 2 * i / 96);
-        final double petal = math.sin(angle * 8 + progress * math.pi * 2);
+      for (int i = 0; i <= _segments; i++) {
+        final double angle = (math.pi * 2 * i / _segments);
+        final double petal = math.sin(angle * 8 + t * math.pi * 2);
         final double r = radius + (petal * (8 + layer * 2));
         final Offset point = Offset(math.cos(angle) * r, math.sin(angle) * r);
 
@@ -374,10 +437,10 @@ class _IslamicAuraPainter extends CustomPainter {
     final Paint rayPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.45
-      ..color = color.withValues(alpha: color.a * 0.55);
+      ..color = tint.withValues(alpha: tint.a * 0.55);
 
     for (int i = 0; i < 24; i++) {
-      final double angle = (math.pi * 2 * i / 24) + (progress * 0.12);
+      final double angle = (math.pi * 2 * i / 24) + (t * 0.12);
       final Offset start = Offset(
         math.cos(angle) * base * 0.74,
         math.sin(angle) * base * 0.74,
@@ -394,6 +457,10 @@ class _IslamicAuraPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _IslamicAuraPainter oldDelegate) {
-    return oldDelegate.progress != progress || oldDelegate.color != color;
+    // الحركة جاية من repaint: progress، فمحتاجين نعيد الرسم هنا بس لو
+    // الثيم اتغيّر (نهاري/ليلي).
+    return oldDelegate.color != color ||
+        oldDelegate.baseAlpha != baseAlpha ||
+        oldDelegate.swing != swing;
   }
 }

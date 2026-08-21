@@ -12,7 +12,9 @@ import '../services/quran_audio_service.dart';
 import '../services/quran_prefs.dart';
 import '../theme/app_theme.dart';
 import '../utils/hijri_date.dart';
+import '../widgets/audio_visuals.dart';
 import '../widgets/hijri_date_card.dart';
+import '../widgets/prayer_times_card.dart';
 import 'quran/quran_player_screen.dart';
 
 class TodayScreen extends StatefulWidget {
@@ -127,7 +129,12 @@ class _TodayScreenState extends State<TodayScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'تحديث',
-            onPressed: () => setState(() => _summaryFuture = _loadSummary()),
+            // قوس معقوف مقصود: `() => _x = f()` بترجع قيمة الإسناد، واللي
+            // هي Future هنا، و setState بترمي assertion لو الـ callback
+            // رجّعت Future. بالشكل ده مفيش قيمة راجعة خالص.
+            onPressed: () => setState(() {
+              _summaryFuture = _loadSummary();
+            }),
           ),
         ],
       ),
@@ -142,7 +149,11 @@ class _TodayScreenState extends State<TodayScreen> {
 
           return RefreshIndicator(
             onRefresh: () async {
-              setState(() => _summaryFuture = _loadSummary());
+              // نفس سبب الأقواس المعقوفة اللي فوق: مانرجّعش Future من
+              // جوّه setState.
+              setState(() {
+                _summaryFuture = _loadSummary();
+              });
               await _summaryFuture;
               // آخر تلاوة ممكن تكون اتغيرت وهو بيسمع في تبويب تاني
               await _loadLastPlayed();
@@ -159,8 +170,8 @@ class _TodayScreenState extends State<TodayScreen> {
                 // التاريخ الهجري بيتحسب جوّه الـ builder — حساب صحيح خالص
                 // من غير I/O، فمفيش داعي يعدّي على _TodaySummary. الـ
                 // ValueListenableBuilder هو اللي بيخلي الكارت يتحدّث لحظياً
-                // لما الإزاحة تتغيّر من الإعدادات، لأن التبويبات بتفضل حيّة
-                // و initState مش بيتنده تاني.
+                // لما الإزاحة تتغيّر من شاشة الإعدادات، من غير ما نستنى
+                // الشاشة دي تتبني من الأول.
                 ValueListenableBuilder<int>(
                   valueListenable: HijriPrefs.offsetNotifier,
                   builder: (context, offset, _) {
@@ -177,6 +188,9 @@ class _TodayScreenState extends State<TodayScreen> {
                     );
                   },
                 ),
+
+                const SizedBox(height: 12),
+                const PrayerTimesCard(),
                 const SizedBox(height: 12),
 
                 // كارت متابعة الاستماع — بيتفرج على الهاندلر مباشرة زي
@@ -264,7 +278,7 @@ class _HeroPanel extends StatelessWidget {
         border: Border.all(color: p.border),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
@@ -279,11 +293,10 @@ class _HeroPanel extends StatelessWidget {
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'ابدأ وردك بهدوء',
-                      textAlign: TextAlign.right,
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -295,7 +308,6 @@ class _HeroPanel extends StatelessWidget {
                       streak == 0
                           ? 'أول خطوة اليوم تكفي'
                           : '$streak يوم متتالي',
-                      textAlign: TextAlign.right,
                       style: TextStyle(color: p.textMuted),
                     ),
                   ],
@@ -357,7 +369,7 @@ class _ProgressCard extends StatelessWidget {
           border: Border.all(color: p.border),
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(icon, color: color),
             const SizedBox(height: 14),
@@ -411,12 +423,12 @@ class _TasbihGoalCard extends StatelessWidget {
           border: Border.all(color: p.border),
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Icon(Icons.fingerprint, color: p.primary),
-                const Spacer(),
+                const SizedBox(width: 10),
                 Text(
                   'هدف التسبيح اليومي',
                   style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: p.text),
@@ -484,7 +496,7 @@ class _InfoStrip extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     title,
@@ -493,7 +505,6 @@ class _InfoStrip extends StatelessWidget {
                   const SizedBox(height: 5),
                   Text(
                     value,
-                    textAlign: TextAlign.right,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(color: p.textMuted),
@@ -730,17 +741,16 @@ class _ResumeListeningCard extends StatelessWidget {
                     ],
                   ),
 
-                  // شريط التقدم بيظهر بس لو عارفين مدة السورة
+                  // شريط التقدم بيظهر بس لو عارفين مدة السورة. الموجة
+                  // بتتحرك وقت التشغيل الفعلي بس — في الوضع المحفوظ
+                  // بتبقى خط مستقيم عشان مايبانش إن فيه حاجة شغالة.
                   if (duration.inMilliseconds > 0) ...[
-                    const SizedBox(height: AppSpace.md),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: progress,
-                        minHeight: 5,
-                        backgroundColor: p.border,
-                        valueColor: AlwaysStoppedAnimation<Color>(p.primary),
-                      ),
+                    const SizedBox(height: AppSpace.sm),
+                    WaveProgressBar(
+                      progress: progress,
+                      playing: live && playing,
+                      color: p.primary,
+                      backgroundColor: p.border,
                     ),
                     const SizedBox(height: AppSpace.sm),
                     Text(

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_development/utils/hijri_date.dart';
+import 'package:adhkari/utils/hijri_date.dart';
 
 void main() {
   group('HijriDate.fromGregorian', () {
