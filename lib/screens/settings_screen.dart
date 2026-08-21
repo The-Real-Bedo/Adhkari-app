@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/hijri_prefs.dart';
 import '../services/notification_service.dart';
+import '../services/prayer_times_service.dart';
 import '../services/quran_download_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/hijri_date.dart';
@@ -22,9 +23,17 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _morningEnabled = true;
   bool _eveningEnabled = true;
-  TimeOfDay _morningTime = const TimeOfDay(hour: 6, minute: 0);
-  TimeOfDay _eveningTime = const TimeOfDay(hour: 17, minute: 0);
+  TimeOfDay _morningTime = const TimeOfDay(hour: NotificationService.defaultMorningHour, minute: 0);
+  TimeOfDay _eveningTime = const TimeOfDay(hour: NotificationService.defaultEveningHour, minute: 0);
   bool _isLoading = true;
+
+  /// تنبيهات مواقيت الصلاة — مقفولة افتراضيًا لأنها محتاجة إذن الموقع.
+  bool _prayerEnabled = false;
+
+  /// الجدولة بتقرا الإحداثيات المحفوظة، فبدونها السويتش مش بيعمل حاجة —
+  /// وعشان كده بنتابع وجودها ونوضّحها بدل ما المستخدم يفضل فاكر إنه مفعّل.
+  bool _prayerHasLocation = false;
+  bool _prayerBusy = false;
 
   int _downloadCount = 0;
 
@@ -37,18 +46,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
+    final bool hasLocation = await PrayerTimesService.cachedLocation() != null;
     if (!mounted) return;
     setState(() {
-      _morningEnabled = prefs.getBool('reminder_morning_enabled') ?? true;
-      _eveningEnabled = prefs.getBool('reminder_evening_enabled') ?? true;
+      _morningEnabled = prefs.getBool(NotificationService.kMorningEnabled) ?? true;
+      _eveningEnabled = prefs.getBool(NotificationService.kEveningEnabled) ?? true;
       _morningTime = TimeOfDay(
-        hour: prefs.getInt('reminder_morning_hour') ?? 6,
-        minute: prefs.getInt('reminder_morning_minute') ?? 0,
+        hour: prefs.getInt(NotificationService.kMorningHour) ?? NotificationService.defaultMorningHour,
+        minute: prefs.getInt(NotificationService.kMorningMinute) ?? 0,
       );
       _eveningTime = TimeOfDay(
-        hour: prefs.getInt('reminder_evening_hour') ?? 17,
-        minute: prefs.getInt('reminder_evening_minute') ?? 0,
+        hour: prefs.getInt(NotificationService.kEveningHour) ?? NotificationService.defaultEveningHour,
+        minute: prefs.getInt(NotificationService.kEveningMinute) ?? 0,
       );
+      _prayerEnabled = prefs.getBool(NotificationService.kPrayerEnabled) ?? false;
+      _prayerHasLocation = hasLocation;
       _isLoading = false;
     });
   }
@@ -61,14 +73,66 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (_) {}
   }
 
+  void _snack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  Future<void> _togglePrayerNotifications(bool value) async {
+    setState(() => _prayerEnabled = value);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(NotificationService.kPrayerEnabled, value);
+
+    if (!value) {
+      // الـ sync بيلغي نطاق تنبيهات الصلاة كله لما تكون مقفولة
+      await NotificationService.syncPrayerNotifications();
+      if (!mounted) return;
+      _snack('تم إيقاف تنبيهات الصلاة');
+      return;
+    }
+
+    await _resolveLocationAndSchedule();
+  }
+
+  /// بنطلب الموقع من هنا كمان، مش من شاشة اليوم بس، عشان اللي بيفعّل
+  /// السويتش ياخد مواقيت فعلاً بدل ما يستنى تنبيه مش هييجي.
+  Future<void> _resolveLocationAndSchedule() async {
+    setState(() => _prayerBusy = true);
+
+    final PrayerLocationResult result =
+        await PrayerTimesService.resolveLocation(askPermission: true);
+    await NotificationService.syncPrayerNotifications();
+
+    if (!mounted) return;
+    setState(() {
+      _prayerBusy = false;
+      _prayerHasLocation = result.hasLocation;
+    });
+
+    if (result.hasLocation) {
+      _snack('تم تفعيل تنبيهات الصلاة');
+      return;
+    }
+
+    _snack(switch (result.status) {
+      PrayerLocationStatus.serviceDisabled =>
+        'شغّل خدمة الموقع في الهاتف الأول',
+      PrayerLocationStatus.permissionDenied =>
+        'محتاجين إذن الموقع لحساب المواقيت',
+      _ => 'مقدرناش نحدد مكانك — جرّب تاني',
+    });
+  }
+
   Future<void> _saveSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('reminder_morning_enabled', _morningEnabled);
-    await prefs.setBool('reminder_evening_enabled', _eveningEnabled);
-    await prefs.setInt('reminder_morning_hour', _morningTime.hour);
-    await prefs.setInt('reminder_morning_minute', _morningTime.minute);
-    await prefs.setInt('reminder_evening_hour', _eveningTime.hour);
-    await prefs.setInt('reminder_evening_minute', _eveningTime.minute);
+    await prefs.setBool(NotificationService.kMorningEnabled, _morningEnabled);
+    await prefs.setBool(NotificationService.kEveningEnabled, _eveningEnabled);
+    await prefs.setInt(NotificationService.kMorningHour, _morningTime.hour);
+    await prefs.setInt(NotificationService.kMorningMinute, _morningTime.minute);
+    await prefs.setInt(NotificationService.kEveningHour, _eveningTime.hour);
+    await prefs.setInt(NotificationService.kEveningMinute, _eveningTime.minute);
     await NotificationService.syncDailyRemindersFromSettings();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -149,6 +213,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       await _saveSettings();
                     },
                     onPickTime: () => _pickTime(isMorning: false),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // ————— مواقيت الصلاة —————
+                  const SectionTitle('مواقيت الصلاة'),
+                  _PrayerNotificationCard(
+                    enabled: _prayerEnabled,
+                    hasLocation: _prayerHasLocation,
+                    busy: _prayerBusy,
+                    onToggle: _togglePrayerNotifications,
+                    onRetryLocation: _resolveLocationAndSchedule,
                   ),
                   const SizedBox(height: 20),
 
@@ -418,6 +493,117 @@ class _NoteCard extends StatelessWidget {
               style: TextStyle(color: p.textMuted),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// تنبيه عند وقت كل صلاة.
+///
+/// الكارت بيفرّق بين تلات حالات مش اتنين: مقفول، مفعّل وشغال، ومفعّل من
+/// غير موقع. التالتة دي أهم واحدة توضّحها — السويتش شكله مفتوح لكن مفيش
+/// تنبيه هييجي، فبنبيّن ده ونحطّ زرار إعادة محاولة.
+class _PrayerNotificationCard extends StatelessWidget {
+  final bool enabled;
+  final bool hasLocation;
+  final bool busy;
+  final ValueChanged<bool> onToggle;
+  final Future<void> Function() onRetryLocation;
+
+  const _PrayerNotificationCard({
+    required this.enabled,
+    required this.hasLocation,
+    required this.busy,
+    required this.onToggle,
+    required this.onRetryLocation,
+  });
+
+  String _subtitle() {
+    if (busy) return 'بنحدد مكانك…';
+    if (!enabled) return 'مغلق';
+    if (!hasLocation) return 'محتاج إذن الموقع لحساب المواقيت';
+    return 'بتتحسب من مكانك بطريقة الهيئة المصرية';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final bool needsLocation = enabled && !hasLocation;
+    final Color color = needsLocation ? p.accent : p.primary;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: p.surface,
+        borderRadius: AppRadius.cardR,
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Switch(
+                value: enabled,
+                onChanged: busy ? null : onToggle,
+                activeThumbColor: inkOnFill(color),
+                activeTrackColor: color,
+                trackOutlineColor: WidgetStateProperty.resolveWith(
+                  (states) => states.contains(WidgetState.selected)
+                      ? color
+                      : p.border,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'تنبيه عند كل صلاة',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(_subtitle(), style: TextStyle(color: p.textMuted)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              if (busy)
+                SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.4,
+                    color: color,
+                  ),
+                )
+              else
+                Icon(
+                  needsLocation
+                      ? Icons.location_off_outlined
+                      : Icons.mosque_outlined,
+                  color: color,
+                ),
+            ],
+          ),
+          if (needsLocation && !busy) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onRetryLocation,
+                icon: const Icon(Icons.my_location),
+                label: const Text('اسمح بالموقع'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: color,
+                  side: BorderSide(color: color.withValues(alpha: 0.5)),
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  shape: RoundedRectangleBorder(borderRadius: AppRadius.cardR),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
