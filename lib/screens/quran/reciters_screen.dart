@@ -8,6 +8,7 @@ import '../../theme/app_theme.dart';
 import '../../utils/arabic_text.dart';
 import '../../widgets/app_card.dart';
 import 'downloads_screen.dart';
+import 'mushaf_index_screen.dart';
 import 'surah_list_screen.dart';
 
 /// شاشة اختيار القارئ — بحث بالاسم العربي والمفضلة في الأول
@@ -119,6 +120,13 @@ class _RecitersScreenState extends State<RecitersScreen> {
         appBar: AppBar(
           title: const Text('القرآن الكريم'),
           actions: [
+            IconButton(
+              icon: const Icon(Icons.menu_book_outlined),
+              tooltip: 'اقرأ المصحف',
+              onPressed: () => Navigator.push(
+                context, MaterialPageRoute(builder: (_) => const MushafIndexScreen()),
+              ),
+            ),
             IconButton(
               icon: const Icon(Icons.download_done),
               tooltip: 'التلاوات المحمّلة',
