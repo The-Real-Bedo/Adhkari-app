@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.flutter_development"
+    namespace = "com.adhkari.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -17,12 +17,14 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+    kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
     }
 
     defaultConfig {
-        applicationId = "com.example.Adhkari_pre_release"
+        applicationId = "com.adhkari.app"
         // --- تعديل الـ minSdk لضمان عمل التنبيهات ---
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion

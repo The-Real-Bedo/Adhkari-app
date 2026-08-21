@@ -12,7 +12,7 @@ import 'quran_prefs.dart';
 /// معرّف قناة الإشعارات الخاصة بالمشغل.
 /// لازم يكون مختلف عن قناة التنبيهات في notification_service.dart
 /// عشان الاتنين ميتعارضوش.
-const String kQuranChannelId = 'com.example.adhkari.quran_audio';
+const String kQuranChannelId = 'com.adhkari.app.quran_audio';
 
 /// أوضاع التكرار
 enum QuranRepeatMode {

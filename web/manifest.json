@@ -1,11 +1,11 @@
 {
-    "name": "flutter_development",
-    "short_name": "flutter_development",
+    "name": "أذكاري - Adhkari",
+    "short_name": "أذكاري",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "أذكاري — أذكار وتسبيح ومكتبة القرآن الصوتية مع المصحف.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
