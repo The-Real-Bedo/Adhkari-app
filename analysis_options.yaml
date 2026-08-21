@@ -7,7 +7,22 @@
 
 # The following line activates a set of recommended lints for Flutter apps,
 # packages, and plugins designed to encourage good coding practices.
+#
+# `include` belongs at the top: everything below it overrides what it brings in,
+# so reading the file top-to-bottom now matches the order the rules apply in.
 include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    # مفيش كود Dart في المجلدات دي — استبعادها بيخلي التحليل أسرع وبيمنع
+    # ملفات مولّدة جوّه build/ من إنها تطلّع تحذيرات مش بتاعتنا
+    - build/**
+    - android/**
+    - ios/**
+    - linux/**
+    - macos/**
+    - web/**
+    - windows/**
 
 linter:
   # The lint rules applied to this project can be customized in the
