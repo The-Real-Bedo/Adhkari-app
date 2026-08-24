@@ -55,9 +55,11 @@ class _QuranPlayerScreenState extends State<QuranPlayerScreen> {
   }
 
   Future<void> _start() async {
-    // لو تهيئة الخدمة فشلت في main() الـ getter بيرمي StateError.
-    // بنتأكد الأول عشان الشاشة تعرض رسالة بدل ما الـ build يقع.
-    if (!QuranAudioService.isReady) {
+    // التهيئة بقت بعد أول frame، فلو المستخدم فتح المشغّل في أول ثانية من
+    // عمر التطبيق ممكن تكون لسه شغالة. بنستناها بدل ما نرمي رسالة غلط —
+    // ensureReady بترجع false بس لو التهيئة فشلت فعلًا.
+    if (!await QuranAudioService.ensureReady()) {
+      if (!mounted) return;
       setState(() {
         _starting = false;
         _loadError = 'مشغل الصوت مش جاهز، اقفل التطبيق وافتحه تاني';
@@ -329,6 +331,15 @@ class _ModeBar extends StatelessWidget {
                   onTap: () => _pickRepeatMode(context),
                 ),
 
+                // السرعة
+                _ModeButton(
+                  icon: Icons.speed,
+                  label: '${handler.speed}x',
+                  active: handler.speed != 1.0,
+                  palette: palette,
+                  onTap: () => _pickSpeed(context),
+                ),
+
                 // العشوائي
                 _ModeButton(
                   icon: Icons.shuffle,
@@ -374,6 +385,60 @@ class _ModeBar extends StatelessWidget {
           fontSize: 18,
           fontWeight: FontWeight.w700,
           color: palette.text,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickSpeed(BuildContext context) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: palette.surface,
+      builder: (sheetContext) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _sheetTitle('سرعة التلاوة'),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpace.lg,
+                  0,
+                  AppSpace.lg,
+                  AppSpace.xl,
+                ),
+                child: Wrap(
+                  spacing: AppSpace.md,
+                  runSpacing: AppSpace.sm,
+                  children: [0.75, 1.0, 1.25].map((s) {
+                    final selected = handler.speed == s;
+                    return ChoiceChip(
+                      label: Text('${s}x'),
+                      selected: selected,
+                      showCheckmark: false,
+                      backgroundColor: palette.surfaceAlt,
+                      selectedColor: palette.primarySoft,
+                      side: BorderSide(
+                        color: selected ? palette.primary : palette.border,
+                      ),
+                      labelStyle: TextStyle(
+                        color: selected ? palette.primary : palette.text,
+                        fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: AppRadius.pillR,
+                      ),
+                      onSelected: (_) {
+                        handler.setSpeed(s);
+                        Navigator.pop(sheetContext);
+                      },
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

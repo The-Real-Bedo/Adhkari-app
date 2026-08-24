@@ -228,6 +228,7 @@ class _TasbihHomeState extends State<TasbihHome>
 
   _loadData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
 
     // جديد: فحص إذا كانت الرسالة ظهرت من قبل
     bool? tipShown = prefs.getBool('tasbih_tip_shown');
@@ -1320,14 +1321,26 @@ class _TasbihHomeState extends State<TasbihHome>
       body: SafeArea(
         child: Stack(
           children: [
-            SingleChildScrollView(
-              child: SizedBox(
-                height:
-                    MediaQuery.of(context).size.height -
-                    MediaQuery.of(context).padding.top -
-                    MediaQuery.of(context).padding.bottom,
-                child: Column(
-                  children: [
+            // الطول بييجي من القياس الحقيقي، مش من طول الشاشة. الشاشة دي
+            // ساكنة جوّه Expanded جنب المشغل المصغّر وتحتها شريط التبويبات،
+            // فالمساحة اللي بناخدها فعلًا أقل من طول الشاشة بستين نقطة على
+            // الأقل. قبل كده كان فيه SizedBox بطول الشاشة ناقص الحواف الآمنة
+            // بس، والفرق ده الفراغات المرنة كانت بتبلعه في السكوت — لحد ما
+            // ييجي ذكر طويل يلف على أربع سطور، فتقع الشاشة في
+            // "BOTTOM OVERFLOWED BY 45 PIXELS".
+            //
+            // SliverFillRemaining بتاخد الأكبر: المساحة الباقية فعلًا ولا
+            // طول المحتوى الطبيعي. فالذكر القصير بيتوزّع في الشاشة بالظبط
+            // زي الأول، والطويل بيمدّ والشاشة تبقى قابلة للتمرير.
+            //
+            // ملحوظة مهمة: الطول الطبيعي بيحسب الفراغات المرنة صفر، فلازم كل
+            // فراغ يكون له حد أدنى ثابت جنب المرن — وإلا الذكر الطويل بيخلّي
+            // المرن يتصفّر والعناصر تتلزّق في بعضها. الفراغات تحت مكتوبة كده.
+            CustomScrollView(
+              slivers: [
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Column(children: [
                     const SizedBox(height: AppSpace.xl),
                     // معدل: إضافة العداد اليومي
                     Row(
@@ -1404,6 +1417,11 @@ class _TasbihHomeState extends State<TasbihHome>
                         ),
                       ),
                     ),
+                    // الفراغ المرن لوحده بيتصفّر أول ما المحتوى يزيد عن
+                    // المساحة المتاحة، وساعتها الذكر بيلزق في كارت هدف اليوم.
+                    // الحد الأدنى ثابت عشان القياس يحسبه ومايقدرش ياكله،
+                    // والمرن بياخد الزيادة بس لما يكون فيه مكان فاضي.
+                    const SizedBox(height: AppSpace.xl),
                     const Expanded(child: SizedBox()),
                     InkWell(
                       onTap: _showZikrPicker,
@@ -1443,6 +1461,16 @@ class _TasbihHomeState extends State<TasbihHome>
                       onTap: _increment,
                       child: _buildCounterSurface(p, currentColor),
                     ),
+                    // نفس الحكاية تحت العداد، والزيادة عشان لافتة "اضغط على
+                    // العداد" متعلّقة ٤٢ نقطة تحت العداد بـ Positioned جوّه
+                    // Stack بـ clipBehavior: none — يعني بتترسم برّه حدود
+                    // العداد ومش محسوبة في القياس. لو مااحتجناش مكانها بأيدينا
+                    // بتركب على زرار إعادة الضبط في أول تشغيل.
+                    SizedBox(
+                      height: _showTip && _counter == 0
+                          ? 42 + AppSpace.lg
+                          : AppSpace.lg,
+                    ),
                     const Expanded(child: SizedBox()),
                     // معدل: زر إعادة الضبط مع خيارات
                     TextButton.icon(
@@ -1453,10 +1481,14 @@ class _TasbihHomeState extends State<TasbihHome>
                         style: TextStyle(color: p.textFaint),
                       ),
                     ),
-                    const SizedBox(height: 50),
-                  ],
+                    // كان ٥٠ وقت ما الشاشة كانت بتقيس نفسها بطول الشاشة كلها،
+                    // فكانت لازم تسيب مكان للمشغل المصغّر وشريط التبويبات
+                    // بنفسها. الاتنين برّه الشاشة دي أصلًا، فالخمسين دي كانت
+                    // بتاكل من المساحة اللي الفراغات محتاجاها.
+                    const SizedBox(height: AppSpace.lg),
+                  ]),
                 ),
-              ),
+              ],
             ),
 
             if (_showCelebration)

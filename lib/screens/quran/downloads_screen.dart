@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/quran_models.dart';
+import '../../services/audio_export_service.dart';
 import '../../services/quran_api_service.dart';
 import '../../services/quran_download_service.dart';
 import '../../services/quran_prefs.dart';
@@ -217,6 +218,70 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
     );
   }
 
+  // ————— الحفظ برّه التطبيق —————
+
+  /// أسماء السورة والقارئ زي ما هنكتبها في مكتبة الموسيقى.
+  ///
+  /// اسم القارئ شرط: هو اللي بيتكتب كـ ARTIST، ومن غيره التلاوة بتقعد في
+  /// مشغل الموسيقى من غير صاحب — وده حاجة بتفضل على الجهاز بعد ما تتحفظ.
+  /// اسم السورة له بديل معقول بالرقم، فمش بنوقف عليه.
+  ({String surah, String reciter, String? moshaf})? _exportNames(
+    DownloadedFile file,
+  ) {
+    final reciter = _reciterById(file.reciterId);
+    if (reciter == null) {
+      _toast('مش لاقيين اسم القارئ — افتح قسم القرآن مرة وجرب تاني');
+      return null;
+    }
+
+    return (
+      surah: _surahNames[file.surahId] ?? 'سورة ${file.surahId}',
+      reciter: reciter.name,
+      moshaf: _moshafById(reciter, file.moshafId)?.name,
+    );
+  }
+
+  /// نسخة في مكتبة الموسيقى بتاعة الجهاز، فأي مشغل تاني يشوفها
+  Future<void> _saveToDevice(DownloadedFile file) async {
+    final names = _exportNames(file);
+    if (names == null) return;
+
+    try {
+      final result = await AudioExportService.saveToMusicLibrary(
+        sourcePath: file.path,
+        surahId: file.surahId,
+        surahName: names.surah,
+        reciterName: names.reciter,
+        moshafName: names.moshaf,
+      );
+
+      _toast(
+        result.alreadyExisted
+            ? 'محفوظة قبل كده في ${result.folder}'
+            : 'اتحفظت في ${result.folder} — هتلاقيها في مشغل الموسيقى',
+      );
+    } on AudioExportException catch (e) {
+      _toast('$e');
+    }
+  }
+
+  /// لوحة المشاركة — الحل الوحيد على iOS، ومفيدة على أندرويد كمان
+  Future<void> _shareFile(DownloadedFile file) async {
+    final names = _exportNames(file);
+    if (names == null) return;
+
+    try {
+      await AudioExportService.shareFile(
+        sourcePath: file.path,
+        surahId: file.surahId,
+        surahName: names.surah,
+        reciterName: names.reciter,
+      );
+    } on AudioExportException catch (e) {
+      _toast('$e');
+    }
+  }
+
   // ————— المسح —————
 
   Future<void> _deleteOne(DownloadedFile file) async {
@@ -383,6 +448,8 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
               title: 'سورة ${_surahNames[file.surahId] ?? file.surahId}',
               subtitle: 'متاحة بدون إنترنت',
               onPlay: () => _playDownloaded(file),
+              onSaveToDevice: () => _saveToDevice(file),
+              onShare: () => _shareFile(file),
               onDelete: () => _deleteOne(file),
             ),
         ],
@@ -532,17 +599,25 @@ class _StorageSummary extends StatelessWidget {
   }
 }
 
-/// سطر سورة محمّلة — تشغيل ومسح
+/// سطر سورة محمّلة — تشغيل، وقايمة بباقي الإجراءات.
+///
+/// التشغيل زرار لوحده لأنه اللي المستخدم عايزه في ٩٩٪ من المرات. الباقي
+/// جوّه قايمة: تلات أزرار في سطر واحد كانت هتزحم الشاشة، وكمان بتحط
+/// "مسح" جنب "حفظ" على بعد نص سنتيمتر.
 class _DownloadTile extends StatelessWidget {
   final String title;
   final String subtitle;
   final VoidCallback onPlay;
+  final VoidCallback onSaveToDevice;
+  final VoidCallback onShare;
   final VoidCallback onDelete;
 
   const _DownloadTile({
     required this.title,
     required this.subtitle,
     required this.onPlay,
+    required this.onSaveToDevice,
+    required this.onShare,
     required this.onDelete,
   });
 
@@ -570,15 +645,79 @@ class _DownloadTile extends StatelessWidget {
               tooltip: 'تشغيل',
               onPressed: onPlay,
             ),
-            IconButton(
-              icon: Icon(Icons.delete_outline, color: p.danger),
-              tooltip: 'مسح',
-              onPressed: onDelete,
+            PopupMenuButton<_TileAction>(
+              icon: Icon(Icons.more_vert, color: p.textMuted),
+              tooltip: 'إجراءات',
+              onSelected: (action) {
+                switch (action) {
+                  case _TileAction.saveToDevice:
+                    onSaveToDevice();
+                  case _TileAction.share:
+                    onShare();
+                  case _TileAction.delete:
+                    onDelete();
+                }
+              },
+              itemBuilder: (context) => [
+                // الحفظ في مكتبة الموسيقى أندرويد بس — على iOS مفيش API
+                // عند آبل لإضافة صوت للمكتبة، فبنعرض المشاركة وبس.
+                if (AudioExportService.canSaveToMusicLibrary)
+                  PopupMenuItem(
+                    value: _TileAction.saveToDevice,
+                    child: _MenuRow(
+                      icon: Icons.library_music_outlined,
+                      label: 'حفظ في الجهاز',
+                      color: p.text,
+                    ),
+                  ),
+                PopupMenuItem(
+                  value: _TileAction.share,
+                  child: _MenuRow(
+                    icon: Icons.ios_share,
+                    label: 'مشاركة',
+                    color: p.text,
+                  ),
+                ),
+                PopupMenuItem(
+                  value: _TileAction.delete,
+                  child: _MenuRow(
+                    icon: Icons.delete_outline,
+                    label: 'مسح',
+                    color: p.danger,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
         onTap: onPlay,
       ),
+    );
+  }
+}
+
+enum _TileAction { saveToDevice, share, delete }
+
+/// أيقونة واسم جوّه عنصر القايمة — الاتنين جنب بعض من ناحية البداية
+class _MenuRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  const _MenuRow({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 19, color: color),
+        const SizedBox(width: AppSpace.sm),
+        Text(label, style: TextStyle(color: color, fontSize: 14)),
+      ],
     );
   }
 }

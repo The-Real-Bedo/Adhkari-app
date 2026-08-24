@@ -382,9 +382,20 @@ class QuranAudioHandler extends BaseAudioHandler
     await _player.seek(Duration.zero);
   }
 
+  // ————— سرعة التشغيل —————
+
+  double get speed => _player.speed;
+
+  @override
+  Future<void> setSpeed(double speed) async {
+    await _player.setSpeed(speed);
+    _modeController.add(null);
+    _broadcastState();
+  }
+
   // ————— مؤقت النوم —————
 
-  /// تشغيل المؤقت لمدة محددة. لما يخلص بيوقف التلاوة.
+  /// تشغيل المؤقت لمدة محددة مع تلاشٍ هادئ للصوت عند الانتهاء.
   void startSleepTimer(Duration duration) {
     cancelSleepTimer();
 
@@ -405,11 +416,29 @@ class QuranAudioHandler extends BaseAudioHandler
         _sleepTimer = null;
         _sleepEndsAt = null;
         _sleepController.add(null);
-        await pause(); // بيحفظ الموضع كمان
+        await _fadeOutAndPause();
       } else {
         _sleepController.add(remaining);
       }
     });
+  }
+
+  /// تلاشٍ هادئ للصوت (Fade out) قبل الإيقاف عشان ميفزعش النائم
+  Future<void> _fadeOutAndPause() async {
+    try {
+      const steps = 10;
+      const stepDuration = Duration(milliseconds: 300);
+      for (int i = steps; i >= 0; i--) {
+        await _player.setVolume(i / steps);
+        await Future.delayed(stepDuration);
+      }
+      await pause();
+    } catch (_) {
+      await pause();
+    } finally {
+      // إعادة الصوت لطبيعته للمرة القادمة
+      await _player.setVolume(1.0);
+    }
   }
 
   /// وضع "أوقف بعد ما السورة الحالية تخلص"

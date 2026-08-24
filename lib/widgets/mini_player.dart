@@ -15,8 +15,18 @@ class MiniPlayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!QuranAudioService.isReady) return const SizedBox.shrink();
+    // التهيئة بتحصل بعد أول frame، فبنسمع للـ notifier عشان الشريط يظهر
+    // لما المشغّل يبقى جاهز بدل ما يفضل مخفي لحد ما حاجة تانية تعيد البناء.
+    return ValueListenableBuilder<bool>(
+      valueListenable: QuranAudioService.readyNotifier,
+      builder: (context, ready, _) {
+        if (!ready) return const SizedBox.shrink();
+        return _buildBar(context);
+      },
+    );
+  }
 
+  Widget _buildBar(BuildContext context) {
     final handler = QuranAudioService.handler;
     final p = context.palette;
 

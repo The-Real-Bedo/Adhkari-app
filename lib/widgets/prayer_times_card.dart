@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:adhan/adhan.dart';
 import 'package:flutter/material.dart';
 
+import '../screens/qibla_screen.dart';
 import '../services/notification_service.dart';
 import '../services/prayer_times_service.dart';
 import '../theme/app_theme.dart';
@@ -79,6 +80,7 @@ class _PrayerTimesCardState extends State<PrayerTimesCard> {
   String _countdown(Duration d) {
     final h = d.inHours;
     final m = d.inMinutes.remainder(60);
+    if (h == 0 && m == 0) return 'الآن';
     return h > 0 ? 'باقي $h س $m د' : 'باقي $m د';
   }
 
@@ -132,6 +134,24 @@ class _PrayerTimesCardState extends State<PrayerTimesCard> {
                 ),
               ),
               const Spacer(),
+              TextButton.icon(
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  foregroundColor: p.primary,
+                ),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const QiblaScreen()),
+                ),
+                icon: const Icon(Icons.explore_outlined, size: 16),
+                label: const Text(
+                  'القبلة',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(width: 4),
               // علامة إن الإحداثيات محفوظة مش جديدة — يعني الـ GPS مانفعش
               if (_status == PrayerLocationStatus.cached)
                 Icon(

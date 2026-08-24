@@ -1,13 +1,13 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../models/ayah.dart';
 import '../../services/mushaf_prefs.dart';
 import '../../services/quran_text_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/mushaf_ornaments.dart';
+import '../../widgets/quote_card_studio.dart';
 
 /// شاشة قراءة سورة كاملة بالرسم العثماني.
 ///
@@ -162,7 +162,7 @@ class _MushafReaderScreenState extends State<MushafReaderScreen> {
       }
 
       final position = _scrollController.position;
-      if (position.maxScrollExtent <= position.pixels) return; // خلص المبني
+      if (position.maxScrollExtent > 0 && position.maxScrollExtent <= position.pixels) return; // خلص المبني
       _scrollController.jumpTo(position.maxScrollExtent);
       _scheduleJump(attempt + 1);
     });
@@ -280,8 +280,14 @@ class _MushafReaderScreenState extends State<MushafReaderScreen> {
                     _toast('تم نسخ الآية');
                   },
                   onShare: () {
-                    Share.share(_quote(selectedAyah));
                     setState(() => _selected = null);
+                    QuoteCardStudio.show(
+                      context,
+                      text: selectedAyah.text,
+                      title: 'سورة ${widget.surahName}',
+                      source: 'سورة ${widget.surahName} — الآية ${selectedAyah.number}',
+                      isQuran: true,
+                    );
                   },
                   onClose: () => setState(() => _selected = null),
                 ),

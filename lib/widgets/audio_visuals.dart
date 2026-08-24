@@ -419,7 +419,14 @@ class _WaveBarsPainter extends CustomPainter {
     final double playedX = size.width * progress;
     final double pulse = amplitude.value;
 
-    final Paint played = Paint()..color = color;
+    final Paint playedPaint = Paint()
+      ..shader = LinearGradient(
+        colors: [
+          color.withValues(alpha: 0.75),
+          color,
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, playedX > 0 ? playedX : 1, size.height));
+
     final Paint pending = Paint()..color = backgroundColor;
 
     for (int i = 0; i < total; i++) {
@@ -428,12 +435,12 @@ class _WaveBarsPainter extends CustomPainter {
 
       double factor = _barFactor(i, total);
 
-      // النبضة بتمشي جوّه الجزء المسموع بس — الجزء اللي لسه بيفضل ساكن
+      // النبضة بتمشي جوّه الجزء المسموع مع حركة ناعمة حية
       if (isPlayed && pulse > 0) {
         final double travel = math.sin(
-          2 * math.pi * (wave.value - (i / total) * 1.6),
+          2 * math.pi * (wave.value - (i / total) * 2.2),
         );
-        factor *= 1 + 0.22 * pulse * travel;
+        factor *= 1 + 0.35 * pulse * travel;
       }
 
       final double barHeight = (size.height * factor).clamp(2.0, size.height);
@@ -443,8 +450,19 @@ class _WaveBarsPainter extends CustomPainter {
           Rect.fromLTWH(x, midY - barHeight / 2, _barWidth, barHeight),
           const Radius.circular(_barWidth / 2),
         ),
-        isPlayed ? played : pending,
+        isPlayed ? playedPaint : pending,
       );
+    }
+
+    // رسم نقطة / هالة مضيئة عند رأس المؤشر الحالي أثناء التشغيل
+    if (playedX > 4 && playedX < size.width) {
+      final glowPaint = Paint()
+        ..color = color.withValues(alpha: 0.35 * (pulse > 0 ? pulse : 0.6))
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4.0);
+      canvas.drawCircle(Offset(playedX, midY), 5.0, glowPaint);
+
+      final dotPaint = Paint()..color = color;
+      canvas.drawCircle(Offset(playedX, midY), 2.5, dotPaint);
     }
   }
 

@@ -13,7 +13,6 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   cupertino_icons: ^1.0.8
-  google_fonts: ^6.1.0
   shared_preferences: ^2.2.2
   share_plus: ^10.1.0
   flutter_local_notifications: ^17.2.4
@@ -27,9 +26,13 @@ dependencies:
   audio_session: ^0.1.21 # إعداد الجلسة الصوتية
   path_provider: ^2.1.5 # مسار حفظ التلاوات للاستماع بدون إنترنت
 
-  # مواقيت الصلاة — الحساب على الجهاز والموقع من الـ GPS
+  # مواقيت الصلاة والقبلة — الحساب على الجهاز والموقع من الـ GPS
   adhan: ^2.0.0
   geolocator: ^13.0.2
+  flutter_compass: ^0.8.0
+
+  # ويدجت الشاشة الرئيسية
+  home_widget: ^0.7.0
 
 
 
@@ -54,8 +57,39 @@ flutter:
   # لازم تعرف فلاتر إن عندك فولدر للصور عشان يشوف الأيقونة
   assets:
     - assets/icon/
+    # نصوص رخصة OFL بتاعة الخطوط — بتتسجّل في LicenseRegistry وقت التشغيل
+    # وبتظهر في صفحة التراخيص. الرخصة بتقول لازم تتوزّع مع الخط.
+    - assets/licenses/
 
   fonts:
-    - family: ArslanWessam
+    # الخطوط مبنية جوه التطبيق عن قصد — قبل كده كانت بتتحمّل من الإنترنت
+    # وقت التشغيل (google_fonts)، فأول فتح من غير نت كان بيطلع بخط النظام.
+    # الأوزان المحطوطة هنا هي اللي الكود بيستعملها فعلًا وبس.
+
+    # الخط الأساسي لكل واجهة التطبيق
+    - family: Cairo
       fonts:
-        - asset: assets/fonts/A Arslan Wessam A A Arslan Wessam A.ttf
+        - asset: assets/fonts/Cairo-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Cairo-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Cairo-Bold.ttf
+          weight: 700
+
+    # نص القرآن والأذكار
+    - family: Amiri
+      fonts:
+        - asset: assets/fonts/Amiri-Bold.ttf
+          weight: 700
+
+    # اسم التطبيق في شاشة البداية
+    - family: ScheherazadeNew
+      fonts:
+        - asset: assets/fonts/ScheherazadeNew-Bold.ttf
+          weight: 700
+
+    # سطر "A D H K A R I" اللاتيني في شاشة البداية
+    - family: Raleway
+      fonts:
+        - asset: assets/fonts/Raleway-Light.ttf
+          weight: 300

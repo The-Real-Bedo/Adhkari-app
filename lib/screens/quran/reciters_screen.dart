@@ -68,7 +68,10 @@ class _RecitersScreenState extends State<RecitersScreen> {
   }
 
   Future<void> _preloadLastPlayed() async {
-    if (!QuranAudioService.isReady) return;
+    // بنستنى التهيئة اللي شغالة بعد أول frame بدل ما نسيب الشاشة من غير
+    // آخر تلاوة لأننا سألنا بدري.
+    if (!await QuranAudioService.ensureReady()) return;
+    if (!mounted) return;
     final handler = QuranAudioService.handler;
     if (handler.mediaItem.value != null) return;
 

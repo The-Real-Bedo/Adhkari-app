@@ -8,12 +8,15 @@ import '../data/azkar_data.dart';
 import '../data/islamic_events.dart';
 import '../models/zikr_model.dart';
 import '../services/hijri_prefs.dart';
+import '../services/home_widget_service.dart';
 import '../services/quran_audio_service.dart';
 import '../services/quran_prefs.dart';
 import '../theme/app_theme.dart';
 import '../utils/hijri_date.dart';
+import 'habit_insights_screen.dart';
 import '../widgets/audio_visuals.dart';
 import '../widgets/hijri_date_card.dart';
+import '../widgets/khatmah_card.dart';
 import '../widgets/prayer_times_card.dart';
 import 'quran/quran_player_screen.dart';
 
@@ -59,6 +62,7 @@ class _TodayScreenState extends State<TodayScreen> {
   Future<_TodaySummary> _loadSummary() async {
     final prefs = await SharedPreferences.getInstance();
     final savedDailyTarget = prefs.getInt('dailyTasbihTarget') ?? 1000;
+    HomeWidgetService.updateAll();
 
     return _TodaySummary(
       morningProgress: _loadAzkarProgress(
@@ -127,11 +131,16 @@ class _TodayScreenState extends State<TodayScreen> {
         centerTitle: true,
         actions: [
           IconButton(
+            icon: const Icon(Icons.bar_chart_rounded),
+            tooltip: 'رحلتي مع الأذكار والإحصائيات',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HabitInsightsScreen()),
+            ),
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'تحديث',
-            // قوس معقوف مقصود: `() => _x = f()` بترجع قيمة الإسناد، واللي
-            // هي Future هنا، و setState بترمي assertion لو الـ callback
-            // رجّعت Future. بالشكل ده مفيش قيمة راجعة خالص.
             onPressed: () => setState(() {
               _summaryFuture = _loadSummary();
             }),
@@ -141,6 +150,9 @@ class _TodayScreenState extends State<TodayScreen> {
       body: FutureBuilder<_TodaySummary>(
         future: _summaryFuture,
         builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
           final summary = snapshot.data ?? _TodaySummary.empty();
           final tasbihProgress =
               (summary.dailyTasbih / summary.dailyTasbihTarget)
@@ -225,6 +237,8 @@ class _TodayScreenState extends State<TodayScreen> {
                   ],
                 ),
                 const SizedBox(height: 12),
+                const KhatmahCard(),
+                const SizedBox(height: 12),
                 _TasbihGoalCard(
                   count: summary.dailyTasbih,
                   total: summary.totalTasbih,
@@ -304,11 +318,31 @@ class _HeroPanel extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    Text(
-                      streak == 0
-                          ? 'أول خطوة اليوم تكفي'
-                          : '$streak يوم متتالي',
-                      style: TextStyle(color: p.textMuted),
+                    InkWell(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const HabitInsightsScreen(),
+                        ),
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            streak == 0
+                                ? 'أول خطوة اليوم تكفي'
+                                : '$streak يوم متتالي 🔥',
+                            style: TextStyle(
+                              color: streak > 0 ? p.accent : p.textMuted,
+                              fontWeight: streak > 0 ? FontWeight.bold : FontWeight.normal,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(Icons.chevron_left, size: 16, color: p.textMuted),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -576,9 +610,18 @@ class _ResumeListeningCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.palette;
 
-    // لو الخدمة فشلت في main مفيش هاندلر نتفرج عليه
-    if (!QuranAudioService.isReady) return _fallbackCard(p);
+    // التهيئة بتحصل بعد أول frame، فبنسمع للـ notifier عشان الكارت يتحدّث
+    // لما المشغّل يبقى جاهز بدل ما يفضل على النسخة البديلة.
+    return ValueListenableBuilder<bool>(
+      valueListenable: QuranAudioService.readyNotifier,
+      builder: (context, ready, _) {
+        if (!ready) return _fallbackCard(p);
+        return _buildLiveCard(context, p);
+      },
+    );
+  }
 
+  Widget _buildLiveCard(BuildContext context, AppPalette p) {
     final handler = QuranAudioService.handler;
 
     return StreamBuilder<MediaItem?>(
@@ -706,13 +749,25 @@ class _ResumeListeningCard extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              live ? 'بتسمع دلوقتي' : 'تابع الاستماع',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: p.primary,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            Row(
+                              children: [
+                                Text(
+                                  live ? 'بتسمع دلوقتي' : 'تابع الاستماع',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: p.primary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                if (live && playing) ...[
+                                  const SizedBox(width: 8),
+                                  EqualizerBars(
+                                    playing: true,
+                                    color: p.primary,
+                                    size: 14,
+                                  ),
+                                ],
+                              ],
                             ),
                             const SizedBox(height: 3),
                             Text(

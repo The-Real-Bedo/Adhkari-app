@@ -25,8 +25,11 @@ android {
 
     defaultConfig {
         applicationId = "com.adhkari.app"
-        // --- تعديل الـ minSdk لضمان عمل التنبيهات ---
-        minSdk = flutter.minSdkVersion
+        // Android 10 (API 29) هو الحد الأدنى عشان حفظ التلاوات في مكتبة
+        // الموسيقى بتاعة الجهاز يشتغل من غير أي صلاحية تخزين — الكتابة في
+        // MediaStore بمسار RELATIVE_PATH مضافة في 29 بالظبط. وكمان بتغطي
+        // شرط التنبيهات المجدولة.
+        minSdk = 29
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

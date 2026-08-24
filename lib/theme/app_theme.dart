@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// نظام التصميم الموحّد — المصدر الوحيد لكل الألوان والأشكال في التطبيق.
 ///
@@ -284,7 +283,7 @@ class AppThemeData {
 
       // خطوط الموقع المرجعي
       useMaterial3: true,
-      fontFamily: googleFont,
+      fontFamily: uiFont,
       fontFamilyFallback: const ['Noto Sans Arabic', 'sans-serif'],
 
       textTheme: _textTheme(p),
@@ -297,7 +296,7 @@ class AppThemeData {
         scrolledUnderElevation: 0,
         centerTitle: true,
         titleTextStyle: TextStyle(
-          fontFamily: googleFont,
+          fontFamily: uiFont,
           fontSize: 18,
           fontWeight: FontWeight.w600,
           color: p.text,
@@ -309,8 +308,12 @@ class AppThemeData {
         indicatorColor: p.primary,
         labelColor: p.primary,
         unselectedLabelColor: p.textMuted,
-        labelStyle: TextStyle(fontFamily: googleFont, fontWeight: FontWeight.w600, fontSize: 13),
-        unselectedLabelStyle: TextStyle(fontFamily: googleFont, fontSize: 13),
+        labelStyle: const TextStyle(
+          fontFamily: uiFont,
+          fontWeight: FontWeight.w600,
+          fontSize: 13,
+        ),
+        unselectedLabelStyle: const TextStyle(fontFamily: uiFont, fontSize: 13),
       ),
 
       // ————— الكروت —————
@@ -384,8 +387,8 @@ class AppThemeData {
           borderRadius: AppRadius.cardR,
           borderSide: BorderSide(color: p.primary, width: 1.5),
         ),
-        hintStyle: TextStyle(color: p.textFaint, fontFamily: googleFont, fontSize: 14),
-        labelStyle: TextStyle(color: p.textMuted, fontFamily: googleFont),
+        hintStyle: TextStyle(color: p.textFaint, fontFamily: uiFont, fontSize: 14),
+        labelStyle: TextStyle(color: p.textMuted, fontFamily: uiFont),
       ),
 
       // ————— الحوارات —————
@@ -397,7 +400,7 @@ class AppThemeData {
           side: BorderSide(color: p.border),
         ),
         titleTextStyle: TextStyle(
-          fontFamily: googleFont,
+          fontFamily: uiFont,
           fontSize: 18,
           fontWeight: FontWeight.w700,
           color: p.text,
@@ -415,7 +418,7 @@ class AppThemeData {
       // ————— شرايط التنبيه —————
       snackBarTheme: SnackBarThemeData(
         backgroundColor: p.surface,
-        contentTextStyle: TextStyle(color: p.text, fontFamily: googleFont),
+        contentTextStyle: TextStyle(color: p.text, fontFamily: uiFont),
         shape: RoundedRectangleBorder(borderRadius: AppRadius.cardR),
         behavior: SnackBarBehavior.floating,
       ),
@@ -467,8 +470,8 @@ class AppThemeData {
         backgroundColor: p.surfaceAlt,
         selectedColor: p.primarySoft,
         side: BorderSide(color: p.border),
-        labelStyle: TextStyle(fontFamily: googleFont, fontSize: 13, color: p.text),
-        secondaryLabelStyle: TextStyle(fontFamily: googleFont, fontSize: 13, color: p.primary),
+        labelStyle: TextStyle(fontFamily: uiFont, fontSize: 13, color: p.text),
+        secondaryLabelStyle: TextStyle(fontFamily: uiFont, fontSize: 13, color: p.primary),
         shape: RoundedRectangleBorder(borderRadius: AppRadius.pillR),
       ),
 
@@ -480,7 +483,7 @@ class AppThemeData {
           borderRadius: AppRadius.chipR,
           side: BorderSide(color: p.border),
         ),
-        textStyle: TextStyle(fontFamily: googleFont, color: p.text),
+        textStyle: TextStyle(fontFamily: uiFont, color: p.text),
       ),
 
       // ————— أسطر القوايم —————
@@ -488,7 +491,7 @@ class AppThemeData {
         iconColor: p.textMuted,
         textColor: p.text,
         subtitleTextStyle: TextStyle(
-          fontFamily: googleFont,
+          fontFamily: uiFont,
           fontSize: 12,
           color: p.textMuted,
         ),
@@ -517,13 +520,16 @@ class AppThemeData {
     );
   }
 
-  /// اسم عائلة كايرو بعد ما google_fonts تحمّلها.
+  /// اسم عائلة كايرو زي ما هو معلن في `pubspec.yaml`.
   ///
-  /// مهم: مانقدرش نكتب 'Cairo' نص مباشر — الاسم النصي ده بيشتغل بس مع
-  /// الخطوط المعلنة في pubspec.yaml. google_fonts بتنزّل الخط وقت التشغيل
-  /// وبتسميه اسم داخلي (زي 'Cairo_regular')، فلازم نسأل المكتبة عنه.
-  static final String googleFont =
-      GoogleFonts.cairo().fontFamily ?? 'sans-serif';
+  /// الخط مبني جوّه التطبيق، فالاسم النصي 'Cairo' بيشتغل على طول ومحتاجينش
+  /// نسأل مكتبة عنه. قبل كده كان `GoogleFonts.cairo().fontFamily` — يعني
+  /// الخط بينزل من الإنترنت أول تشغيل، وأول فتح من غير نت كان بيطلع بخط
+  /// النظام. الأوزان المتاحة: 400 و600 و700.
+  static const String uiFont = 'Cairo';
+
+  /// خط نص القرآن والأذكار، معلن في `pubspec.yaml` بوزن 700.
+  static const String quranFont = 'Amiri';
 
   /// أنماط النصوص: أميري لنص القرآن والأذكار، كايرو لباقي الواجهة.
   /// بنعرّفهم هنا بس، وكل مكان بياخدهم من `context.type`.
@@ -535,77 +541,78 @@ class AppThemeData {
     return TextTheme(
       // —— واجهة (كايرو) ——
       headlineLarge: TextStyle(
-        fontFamily: googleFont,
+        fontFamily: uiFont,
         fontSize: 24,
         fontWeight: FontWeight.w700,
         color: p.text,
         height: 1.5,
       ),
       headlineMedium: TextStyle(
-        fontFamily: googleFont,
+        fontFamily: uiFont,
         fontSize: 20,
         fontWeight: FontWeight.w600,
         color: p.text,
         height: 1.5,
       ),
-      headlineSmall: GoogleFonts.amiri(
+      headlineSmall: TextStyle(
+        fontFamily: quranFont,
         fontSize: 18,
         fontWeight: FontWeight.w700,
         color: p.text,
         height: 1.5,
       ),
       titleLarge: TextStyle(
-        fontFamily: googleFont,
+        fontFamily: uiFont,
         fontSize: 18,
         fontWeight: FontWeight.w700,
         color: p.text,
       ),
       titleMedium: TextStyle(
-        fontFamily: googleFont,
+        fontFamily: uiFont,
         fontSize: 16,
         fontWeight: FontWeight.w600,
         color: p.text,
       ),
       titleSmall: TextStyle(
-        fontFamily: googleFont,
+        fontFamily: uiFont,
         fontSize: 14,
         fontWeight: FontWeight.w600,
         color: p.textMuted,
       ),
       bodyLarge: TextStyle(
-        fontFamily: googleFont,
+        fontFamily: uiFont,
         fontSize: 16,
         fontWeight: FontWeight.w400,
         color: p.text,
         height: 1.6,
       ),
       bodyMedium: TextStyle(
-        fontFamily: googleFont,
+        fontFamily: uiFont,
         fontSize: 14,
         fontWeight: FontWeight.w400,
         color: p.text,
         height: 1.5,
       ),
       bodySmall: TextStyle(
-        fontFamily: googleFont,
+        fontFamily: uiFont,
         fontSize: 12,
         fontWeight: FontWeight.w400,
         color: p.textMuted,
       ),
       labelLarge: TextStyle(
-        fontFamily: googleFont,
+        fontFamily: uiFont,
         fontSize: 14,
         fontWeight: FontWeight.w600,
         color: p.text,
       ),
       labelMedium: TextStyle(
-        fontFamily: googleFont,
+        fontFamily: uiFont,
         fontSize: 12,
         fontWeight: FontWeight.w600,
         color: p.textMuted,
       ),
       labelSmall: TextStyle(
-        fontFamily: googleFont,
+        fontFamily: uiFont,
         fontSize: 10,
         fontWeight: FontWeight.w600,
         color: p.textFaint,
@@ -616,8 +623,19 @@ class AppThemeData {
 
 /// نص القرآن والأذكار — بنستخدم أميري مش كايرو
 extension QuranTextStyle on TextStyle {
-  static TextStyle amiri({Color? color, double fontSize = 18, FontWeight fontWeight = FontWeight.w700, double height = 1.5}) {
-    return GoogleFonts.amiri(fontSize: fontSize, fontWeight: fontWeight, color: color, height: height);
+  static TextStyle amiri({
+    Color? color,
+    double fontSize = 18,
+    FontWeight fontWeight = FontWeight.w700,
+    double height = 1.5,
+  }) {
+    return TextStyle(
+      fontFamily: AppThemeData.quranFont,
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      height: height,
+    );
   }
 }
 

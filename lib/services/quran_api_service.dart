@@ -34,10 +34,15 @@ class QuranApiService {
   static List<Reciter>? _recitersMemo;
   static List<Surah>? _suwarMemo;
 
-  /// قائمة القراء. بيحاول الشبكة الأول، وبيقع على الكاش لو فشلت.
-  static Future<List<Reciter>> fetchReciters() async {
-    if (_recitersMemo != null) return _recitersMemo!;
+  static Future<List<Reciter>>? _ongoingRecitersFetch;
 
+  /// قائمة القراء. بيحاول الشبكة الأول، وبيقع على الكاش لو فشلت.
+  static Future<List<Reciter>> fetchReciters() {
+    if (_recitersMemo != null) return Future.value(_recitersMemo!);
+    return _ongoingRecitersFetch ??= _fetchRecitersInternal().whenComplete(() => _ongoingRecitersFetch = null);
+  }
+
+  static Future<List<Reciter>> _fetchRecitersInternal() async {
     final prefs = await SharedPreferences.getInstance();
 
     // الكاش لسه صالح؟ استخدمه على طول من غير شبكة
@@ -81,10 +86,15 @@ class QuranApiService {
     }
   }
 
-  /// قائمة السور الـ 114 بأسمائها العربية
-  static Future<List<Surah>> fetchSuwar() async {
-    if (_suwarMemo != null) return _suwarMemo!;
+  static Future<List<Surah>>? _ongoingSuwarFetch;
 
+  /// قائمة السور الـ 114 بأسمائها العربية
+  static Future<List<Surah>> fetchSuwar() {
+    if (_suwarMemo != null) return Future.value(_suwarMemo!);
+    return _ongoingSuwarFetch ??= _fetchSuwarInternal().whenComplete(() => _ongoingSuwarFetch = null);
+  }
+
+  static Future<List<Surah>> _fetchSuwarInternal() async {
     final prefs = await SharedPreferences.getInstance();
 
     if (_isCacheFresh(prefs)) {

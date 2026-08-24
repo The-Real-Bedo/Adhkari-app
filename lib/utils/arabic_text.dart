@@ -45,6 +45,7 @@ String normalizeArabic(String input) {
       case 'ة':
         buffer.write('ه');
       case 'ى':
+      case 'ی': // Persian Yeh
         buffer.write('ي');
       case 'ؤ':
         buffer.write('و');

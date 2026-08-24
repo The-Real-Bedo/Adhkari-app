@@ -26,11 +26,18 @@ class QuranTextService {
   /// كاش في الذاكرة عشان التنقل بين السور ما يقراش من القرص كل مرة
   static final Map<int, List<Ayah>> _memo = {};
 
-  /// آيات سورة واحدة. الترتيب: الذاكرة، فالقرص، فالشبكة.
-  static Future<List<Ayah>> surah(int surahId) async {
-    final memo = _memo[surahId];
-    if (memo != null) return memo;
+  static final Map<int, Future<List<Ayah>>> _ongoingFetches = {};
 
+  /// آيات سورة واحدة. الترتيب: الذاكرة، فالقرص، فالشبكة.
+  static Future<List<Ayah>> surah(int surahId) {
+    if (_memo.containsKey(surahId)) return Future.value(_memo[surahId]!);
+    
+    return _ongoingFetches[surahId] ??= _surahInternal(surahId).whenComplete(() {
+      _ongoingFetches.remove(surahId);
+    });
+  }
+
+  static Future<List<Ayah>> _surahInternal(int surahId) async {
     final cached = await _readCache(surahId);
     if (cached != null && cached.isNotEmpty) {
       _memo[surahId] = cached;

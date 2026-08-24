@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'main_navigation.dart';
 
@@ -27,10 +26,12 @@ class _CustomSplashScreenState extends State<CustomSplashScreen>
 
   /// الخط بيتبنى مرة واحدة عن قصد.
   ///
-  /// `GoogleFonts.scheherazadeNew()` بتعمل بحث في جدول العائلات وبتبني
-  /// TextStyle جديد. قبل كده كانت بتتنده مرتين جوّه كل frame (طبقة الظل
-  /// وطبقة التدرّج)، يعني 240 مرة في الثانية على شاشة 120Hz.
-  late final TextStyle _baseCalligraphy = GoogleFonts.scheherazadeNew(
+  /// اللي بيتغير كل frame هو اللون وقوة البلور بس، فالنمط الأساسي ده
+  /// بيتحسب مرة وبنعمل عليه `copyWith` — قبل كده كان بيتبني مرتين جوّه كل
+  /// frame (طبقة الظل وطبقة التدرّج)، يعني 240 مرة في الثانية على شاشة
+  /// 120Hz. الخط نفسه مبني في التطبيق ومعلن في pubspec.yaml بوزن 700.
+  static const TextStyle _baseCalligraphy = TextStyle(
+    fontFamily: 'ScheherazadeNew',
     fontSize: 104,
     fontWeight: FontWeight.w700,
     height: 1.45,
@@ -157,8 +158,7 @@ class _CustomSplashScreenState extends State<CustomSplashScreen>
                   _lightController,
                 ]),
                 // الخط الفاصل ونص "ADHKARI" بيتمرروا كـ child، فبيتبنوا
-                // مرة واحدة بس. لولا كده كان GoogleFonts.raleway بتتنده
-                // في كل frame.
+                // مرة واحدة بس مهما اتعاد بناء الحركة.
                 child: FadeTransition(
                   opacity: _detailsFade,
                   child: Column(
@@ -179,7 +179,8 @@ class _CustomSplashScreenState extends State<CustomSplashScreen>
                       const SizedBox(height: 18),
                       Text(
                         "A D H K A R I",
-                        style: GoogleFonts.raleway(
+                        style: TextStyle(
+                          fontFamily: 'Raleway',
                           fontSize: 13,
                           color: c.subtitle,
                           letterSpacing: 9,

@@ -57,5 +57,14 @@
 	<array>
 		<string>ar</string>
 	</array>
+
+	<!-- التلاوات المحمّلة تبان في تطبيق Files تحت On My iPhone ← أذكاري،
+	     فالمستخدم يقدر ينقلها لأي مكان بنفسه. مفيش API عند آبل لإضافة صوت
+	     لمكتبة الموسيقى (MPMediaLibrary بتخص Apple Music بس)، فده أقصى
+	     اللي ينفع على iOS — الباقي عن طريق لوحة المشاركة. -->
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
 </dict>
 </plist>

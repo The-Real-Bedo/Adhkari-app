@@ -3,12 +3,13 @@ import 'package:flutter/material.dart';
 import '../../models/quran_models.dart';
 import '../../services/mushaf_prefs.dart';
 import '../../services/quran_api_service.dart';
+import '../../services/quran_page_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/arabic_text.dart';
 import '../../widgets/app_card.dart';
-import 'mushaf_reader_screen.dart';
+import 'mushaf_book_screen.dart';
 
-/// فهرس المصحف — نفس الـ 114 سورة بتاعة شاشة الاستماع، بس القراءة بدل الصوت.
+/// فهرس المصحف — تصفح السور والانتقال لصفحات مصحف المدينة الـ 604.
 class MushafIndexScreen extends StatefulWidget {
   const MushafIndexScreen({super.key});
 
@@ -66,25 +67,13 @@ class _MushafIndexScreenState extends State<MushafIndexScreen> {
         .toList();
   }
 
-  /// مكية ولا مدنية — بتتعرض في لوحة عنوان السورة جوه المصحف. بنجيبها من
-  /// القايمة المحمّلة بدل ما نمرّرها، عشان كارت "كمّل قراءتك" كمان يجيبها
-  /// وهو مش شايف غير رقم السورة واسمها.
-  String? _typeLabelOf(int surahId) {
-    for (final surah in _suwar) {
-      if (surah.id == surahId) return surah.typeLabel;
-    }
-    return null;
-  }
-
-  Future<void> _open(int surahId, String surahName, {int? startAyah}) async {
+  Future<void> _openSurahPage(int surahId) async {
+    final page = QuranPageService.surahStartPages[surahId] ?? 1;
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => MushafReaderScreen(
-          surahId: surahId,
-          surahName: surahName,
-          typeLabel: _typeLabelOf(surahId),
-          startAyah: startAyah,
+        builder: (_) => MushafBookScreen(
+          initialPage: page,
         ),
       ),
     );
@@ -95,7 +84,21 @@ class _MushafIndexScreenState extends State<MushafIndexScreen> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        appBar: AppBar(title: const Text('المصحف')),
+        appBar: AppBar(
+          title: const Text('المصحف الشريف'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.menu_book),
+              tooltip: 'فتح المصحف (604 صفحات)',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const MushafBookScreen(),
+                ),
+              ),
+            ),
+          ],
+        ),
         body: _buildBody(context.palette),
       ),
     );
@@ -136,7 +139,7 @@ class _MushafIndexScreenState extends State<MushafIndexScreen> {
 
     return Column(
       children: [
-        ValueListenableBuilder<MushafBookmark?>(
+                ValueListenableBuilder<MushafBookmark?>(
           valueListenable: MushafPrefs.bookmarkNotifier,
           builder: (context, bookmark, _) => bookmark == null
               ? const SizedBox.shrink()
@@ -144,11 +147,7 @@ class _MushafIndexScreenState extends State<MushafIndexScreen> {
                   padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
                   child: _ResumeCard(
                     bookmark: bookmark,
-                    onTap: () => _open(
-                      bookmark.surahId,
-                      bookmark.surahName,
-                      startAyah: bookmark.ayah,
-                    ),
+                    onTap: () => _openSurahPage(bookmark.surahId),
                   ),
                 ),
         ),
@@ -175,6 +174,8 @@ class _MushafIndexScreenState extends State<MushafIndexScreen> {
                   itemCount: visible.length,
                   itemBuilder: (context, index) {
                     final surah = visible[index];
+                    final startPage =
+                        QuranPageService.surahStartPages[surah.id] ?? 1;
 
                     return Card(
                       margin: const EdgeInsets.symmetric(
@@ -200,14 +201,11 @@ class _MushafIndexScreenState extends State<MushafIndexScreen> {
                           ),
                         ),
                         subtitle: Text(
-                          surah.typeLabel,
+                          '${surah.typeLabel} • ص $startPage',
                           style: TextStyle(fontSize: 12, color: p.textMuted),
                         ),
-                        // مفيش أي علامة على السورة. قبل كده كانت السور
-                        // المحفوظة للقراءة بدون إنترنت بتاخد علامة خضرا،
-                        // واللي كان بيتقري غلط كأنها "سورة خلصتها".
                         trailing: Icon(Icons.chevron_left, color: p.textFaint),
-                        onTap: () => _open(surah.id, surah.name),
+                        onTap: () => _openSurahPage(surah.id),
                       ),
                     );
                   },

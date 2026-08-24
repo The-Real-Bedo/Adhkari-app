@@ -18,25 +18,37 @@ class NotificationService {
   /// معرّفات التنبيهات — أرقام ثابتة مسمّاة بدل أرقام سايبة في الكود
   static const int morningReminderId = 1;
   static const int eveningReminderId = 2;
+  static const int fridayReminderId = 3;
+  static const int postPrayerReminderBase = 200;
 
   static const String _dailyChannelId = 'com.adhkari.app.daily_reminders';
   static const String _dailyChannelName = 'تنبيهات الأذكار اليومية';
   static const String _dailyChannelDescription =
       'تنبيه بورد الصباح والمساء في الوقت اللي تختاره';
 
+  static const String _fridayChannelId = 'com.adhkari.app.friday_reminders';
+  static const String _fridayChannelName = 'تنبيهات يوم الجمعة';
+  static const String _fridayChannelDescription =
+      'تنبيه بسورة الكهف والصلاة على النبي ﷺ يوم الجمعة';
+
   static const String _prayerChannelId = 'com.adhkari.app.prayer_times';
   static const String _prayerChannelName = 'تنبيهات مواقيت الصلاة';
   static const String _prayerChannelDescription =
       'تنبيه عند دخول وقت كل صلاة';
 
-  // مفاتيح التفضيلات — متكتبة مرة واحدة هنا عشان شاشة الإعدادات والخدمة
-  // ميختلفوش في اسم المفتاح ويحصل التنبيه ميتزامنش
+  // مفاتيح التفضيلات
   static const String kMorningEnabled = 'reminder_morning_enabled';
+  static const String kMorningMode = 'reminder_morning_mode'; // 'fixed', 'after_fajr', 'sunrise'
   static const String kMorningHour = 'reminder_morning_hour';
   static const String kMorningMinute = 'reminder_morning_minute';
+
   static const String kEveningEnabled = 'reminder_evening_enabled';
+  static const String kEveningMode = 'reminder_evening_mode'; // 'fixed', 'after_asr', 'before_maghrib'
   static const String kEveningHour = 'reminder_evening_hour';
   static const String kEveningMinute = 'reminder_evening_minute';
+
+  static const String kFridayEnabled = 'reminder_friday_enabled';
+  static const String kPostPrayerAthkarEnabled = 'reminder_post_prayer_enabled';
   static const String kPrayerEnabled = 'prayer_notifications_enabled';
 
   static const int defaultMorningHour = 6;
@@ -141,6 +153,21 @@ class NotificationService {
     ),
   );
 
+  static NotificationDetails _fridayDetails() => const NotificationDetails(
+    android: AndroidNotificationDetails(
+      _fridayChannelId,
+      _fridayChannelName,
+      channelDescription: _fridayChannelDescription,
+      importance: Importance.max,
+      priority: Priority.high,
+    ),
+    iOS: DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    ),
+  );
+
   static Future<void> scheduleDailyNotification({
     required int id,
     required String title,
@@ -148,9 +175,6 @@ class NotificationService {
     required int hour,
     required int minute,
   }) async {
-    // المنبه الدقيق محتاج صلاحية المستخدم ممكن يرفضها، وساعات النظام
-    // بيرفضها من نفسه. بنجرّب الدقيق الأول وبنقع على غير الدقيق بدل ما
-    // التنبيه ميتجدولش خالص.
     for (final mode in const [
       AndroidScheduleMode.exactAllowWhileIdle,
       AndroidScheduleMode.inexactAllowWhileIdle,
@@ -186,26 +210,118 @@ class NotificationService {
 
     await cancelNotification(morningReminderId);
     await cancelNotification(eveningReminderId);
+    for (int d = 0; d < 7; d++) {
+      await cancelNotification(10 + d);
+      await cancelNotification(20 + d);
+    }
+
+    final location = await PrayerTimesService.cachedLocation();
+    final now = DateTime.now();
 
     if (morningEnabled) {
-      await scheduleDailyNotification(
-        id: morningReminderId,
-        title: 'أَذْكَار الصَّبَاحِ ☀️',
-        body: 'ابدأ يومك بوِرد الصباح وذِكر الله',
-        hour: prefs.getInt(kMorningHour) ?? defaultMorningHour,
-        minute: prefs.getInt(kMorningMinute) ?? 0,
-      );
+      final mode = prefs.getString(kMorningMode) ?? 'fixed';
+      int hour = prefs.getInt(kMorningHour) ?? defaultMorningHour;
+      int minute = prefs.getInt(kMorningMinute) ?? 0;
+
+      if (mode == 'fixed' || location == null) {
+        await scheduleDailyNotification(
+          id: morningReminderId,
+          title: 'أَذْكَار الصَّبَاحِ ☀️',
+          body: 'ابدأ يومك بوِرد الصباح وذِكر الله',
+          hour: hour,
+          minute: minute,
+        );
+      } else {
+        for (int d = 0; d < 7; d++) {
+          final targetDate = now.add(Duration(days: d));
+          final times = PrayerTimesService.timesFor(location, date: targetDate);
+          DateTime t;
+          if (mode == 'after_fajr') {
+            t = times.fajr.add(const Duration(minutes: 15));
+          } else {
+            t = times.sunrise;
+          }
+          if (t.isBefore(now)) continue;
+          try {
+            await _notificationsPlugin.zonedSchedule(
+              10 + d,
+              'أَذْكَار الصَّبَاحِ ☀️',
+              'ابدأ يومك بوِرد الصباح وذِكر الله',
+              tz.TZDateTime.from(t, tz.local),
+              _dailyDetails(),
+              androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+              uiLocalNotificationDateInterpretation:
+                  UILocalNotificationDateInterpretation.absoluteTime,
+            );
+          } catch (_) {}
+        }
+      }
     }
 
     if (eveningEnabled) {
-      await scheduleDailyNotification(
-        id: eveningReminderId,
-        title: 'أَذْكَار المَسَاءِ 🌙',
-        body: 'اختم يومك بوِرد المساء وطمأنينة الذكر',
-        hour: prefs.getInt(kEveningHour) ?? defaultEveningHour,
-        minute: prefs.getInt(kEveningMinute) ?? 0,
-      );
+      final mode = prefs.getString(kEveningMode) ?? 'fixed';
+      int hour = prefs.getInt(kEveningHour) ?? defaultEveningHour;
+      int minute = prefs.getInt(kEveningMinute) ?? 0;
+
+      if (mode == 'fixed' || location == null) {
+        await scheduleDailyNotification(
+          id: eveningReminderId,
+          title: 'أَذْكَار المَسَاءِ 🌙',
+          body: 'اختم يومك بوِرد المساء وطمأنينة الذكر',
+          hour: hour,
+          minute: minute,
+        );
+      } else {
+        for (int d = 0; d < 7; d++) {
+          final targetDate = now.add(Duration(days: d));
+          final times = PrayerTimesService.timesFor(location, date: targetDate);
+          DateTime t;
+          if (mode == 'after_asr') {
+            t = times.asr.add(const Duration(minutes: 10));
+          } else {
+            t = times.maghrib.subtract(const Duration(minutes: 30));
+          }
+          if (t.isBefore(now)) continue;
+          try {
+            await _notificationsPlugin.zonedSchedule(
+              20 + d,
+              'أَذْكَار المَسَاءِ 🌙',
+              'اختم يومك بوِرد المساء وطمأنينة الذكر',
+              tz.TZDateTime.from(t, tz.local),
+              _dailyDetails(),
+              androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+              uiLocalNotificationDateInterpretation:
+                  UILocalNotificationDateInterpretation.absoluteTime,
+            );
+          } catch (_) {}
+        }
+      }
     }
+
+    await syncFridayReminder();
+  }
+
+  /// مزامنة تذكير يوم الجمعة بسورة الكهف والصلاة على النبي ﷺ
+  static Future<void> syncFridayReminder() async {
+    final prefs = await SharedPreferences.getInstance();
+    final enabled = prefs.getBool(kFridayEnabled) ?? true;
+    await cancelNotification(fridayReminderId);
+    if (!enabled) return;
+
+    final nextFriday = _nextInstanceOfDayAndTime(DateTime.friday, 9, 0);
+    try {
+      await _notificationsPlugin.zonedSchedule(
+        fridayReminderId,
+        'سورة الكهف والصلاة على النبي ﷺ 🌿',
+        '«مَنْ قَرَأَ سُورَةَ الْكَهْفِ يَوْمَ الْجُمُعَةِ أَضَاءَ لَهُ مِنَ النُّورِ مَا بَيْنَ الْجُمُعَتَيْنِ»',
+        nextFriday,
+        _fridayDetails(),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+      );
+    } catch (_) {}
   }
 
   // ————— تنبيهات مواقيت الصلاة —————
@@ -288,6 +404,19 @@ class NotificationService {
     // !isAfter بدل isBefore: لو الوقت المطلوب هو نفس اللحظة دي بالظبط
     // لازم نروح لبكرة، مش نجدول تنبيه في الماضي بفرق أجزاء من الثانية.
     if (!scheduledDate.isAfter(now)) {
+      scheduledDate = scheduledDate.add(const Duration(days: 1));
+    }
+    return scheduledDate;
+  }
+
+  /// أقرب وقت جاي ليوم معين في الأسبوع (مثل الجمعة) وساعة محددة.
+  static tz.TZDateTime _nextInstanceOfDayAndTime(
+    int dayOfWeek,
+    int hour,
+    int minute,
+  ) {
+    tz.TZDateTime scheduledDate = _nextInstanceOfTime(hour, minute);
+    while (scheduledDate.weekday != dayOfWeek) {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
     return scheduledDate;

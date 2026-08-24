@@ -7,7 +7,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/azkar_data.dart';
 import '../models/zikr_model.dart';
+import '../services/habit_tracker_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/quote_card_studio.dart';
 
 class AzkarPage extends StatefulWidget {
   final double fontSize;
@@ -206,6 +208,7 @@ class _AzkarListState extends State<AzkarList> {
 
   void _registerCompletion() {
     final today = DateTime.now().toString().split(' ')[0];
+    HabitTrackerService.logAzkarCompletion(widget.type);
     if (_lastCompletionDate == today) return;
 
     _currentStreak++;
@@ -642,9 +645,14 @@ class _AzkarListState extends State<AzkarList> {
                     },
                   ),
                   IconButton(
-                    icon: const Icon(Icons.share, size: 20),
-                    tooltip: 'مشاركة',
-                    onPressed: () => Share.share(item.text),
+                    icon: const Icon(Icons.share_outlined, size: 20),
+                    tooltip: 'مشاركة / تصميم بطاقة',
+                    onPressed: () => QuoteCardStudio.show(
+                      context,
+                      text: item.text,
+                      title: 'أذكار ${widget.title}',
+                      source: item.source,
+                    ),
                   ),
                 ],
               ),

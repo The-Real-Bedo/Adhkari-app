@@ -23,6 +23,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _morningEnabled = true;
   bool _eveningEnabled = true;
+  bool _fridayEnabled = true;
   TimeOfDay _morningTime = const TimeOfDay(hour: NotificationService.defaultMorningHour, minute: 0);
   TimeOfDay _eveningTime = const TimeOfDay(hour: NotificationService.defaultEveningHour, minute: 0);
   bool _isLoading = true;
@@ -51,6 +52,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {
       _morningEnabled = prefs.getBool(NotificationService.kMorningEnabled) ?? true;
       _eveningEnabled = prefs.getBool(NotificationService.kEveningEnabled) ?? true;
+      _fridayEnabled = prefs.getBool(NotificationService.kFridayEnabled) ?? true;
       _morningTime = TimeOfDay(
         hour: prefs.getInt(NotificationService.kMorningHour) ?? NotificationService.defaultMorningHour,
         minute: prefs.getInt(NotificationService.kMorningMinute) ?? 0,
@@ -129,6 +131,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(NotificationService.kMorningEnabled, _morningEnabled);
     await prefs.setBool(NotificationService.kEveningEnabled, _eveningEnabled);
+    await prefs.setBool(NotificationService.kFridayEnabled, _fridayEnabled);
     await prefs.setInt(NotificationService.kMorningHour, _morningTime.hour);
     await prefs.setInt(NotificationService.kMorningMinute, _morningTime.minute);
     await prefs.setInt(NotificationService.kEveningHour, _eveningTime.hour);
@@ -145,7 +148,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       initialTime: isMorning ? _morningTime : _eveningTime,
     );
-    if (picked == null) return;
+    if (picked == null || !mounted) return;
     setState(() {
       if (isMorning) { _morningTime = picked; } else { _eveningTime = picked; }
     });
@@ -213,6 +216,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       await _saveSettings();
                     },
                     onPickTime: () => _pickTime(isMorning: false),
+                  ),
+                  const SizedBox(height: 12),
+                  AppCard(
+                    child: SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      secondary: Icon(Icons.mosque, color: p.primary),
+                      title: const Text(
+                        'تذكير يوم الجمعة المباركة',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        'تنبيه صباح كل جمعة بسورة الكهف والصلاة على النبي ﷺ',
+                        style: TextStyle(color: p.textMuted, fontSize: 12),
+                      ),
+                      value: _fridayEnabled,
+                      activeThumbColor: p.primary,
+                      onChanged: (value) async {
+                        setState(() => _fridayEnabled = value);
+                        await _saveSettings();
+                      },
+                    ),
                   ),
                   const SizedBox(height: 20),
 
