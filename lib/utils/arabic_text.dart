@@ -24,6 +24,7 @@ const String _tatweel = 'ـ';
 /// - ى ← ي          (الألف المقصورة)
 /// - ؤ ← و ، ئ ← ي  (الهمزة على الواو والياء)
 /// - بنشيل التشكيل والتطويل
+/// - الأرقام العربية والفارسية ← 0-9
 ///
 /// مثال: "الأَعْرَاف" و "الاعراف" الاتنين بيبقوا "الاعراف"
 String normalizeArabic(String input) {
@@ -32,6 +33,14 @@ String normalizeArabic(String input) {
   final buffer = StringBuffer();
 
   for (final rune in input.runes) {
+    if (rune >= 0x0660 && rune <= 0x0669) {
+      buffer.write(rune - 0x0660);
+      continue;
+    }
+    if (rune >= 0x06F0 && rune <= 0x06F9) {
+      buffer.write(rune - 0x06F0);
+      continue;
+    }
     final char = String.fromCharCode(rune);
 
     switch (char) {
