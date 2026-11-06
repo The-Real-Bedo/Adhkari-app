@@ -32,6 +32,14 @@ String normalizeArabic(String input) {
   final buffer = StringBuffer();
 
   for (final rune in input.runes) {
+    if (rune >= 0x0660 && rune <= 0x0669) {
+      buffer.write(rune - 0x0660);
+      continue;
+    }
+    if (rune >= 0x06F0 && rune <= 0x06F9) {
+      buffer.write(rune - 0x06F0);
+      continue;
+    }
     final char = String.fromCharCode(rune);
 
     switch (char) {
