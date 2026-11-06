@@ -87,7 +87,7 @@ class _SurahListScreenState extends State<SurahListScreen> {
   }
 
   List<Surah> get _visible {
-    final q = _query.trim();
+    final q = normalizeArabic(_query);
     if (q.isEmpty) return _available;
     return _available.where((s) => arabicContains(s.name, q) || s.id.toString() == q).toList();
   }
@@ -281,9 +281,17 @@ class _SurahListScreenState extends State<SurahListScreen> {
                 controller: _searchController,
                 textAlign: TextAlign.right,
                 onChanged: (value) => setState(() => _query = value),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'ابحث باسم السورة أو رقمها...',
-                  prefixIcon: Icon(Icons.search),
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _query.isEmpty ? null : IconButton(
+                    tooltip: 'مسح البحث',
+                    icon: const Icon(Icons.clear),
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() => _query = '');
+                    },
+                  ),
                 ),
               ),
             ),

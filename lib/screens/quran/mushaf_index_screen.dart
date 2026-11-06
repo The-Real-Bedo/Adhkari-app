@@ -60,7 +60,7 @@ class _MushafIndexScreenState extends State<MushafIndexScreen> {
   }
 
   List<Surah> get _visible {
-    final q = _query.trim();
+    final q = normalizeArabic(_query);
     if (q.isEmpty) return _suwar;
     return _suwar
         .where((s) => arabicContains(s.name, q) || s.id.toString() == q)
@@ -157,9 +157,17 @@ class _MushafIndexScreenState extends State<MushafIndexScreen> {
             controller: _searchController,
             textAlign: TextAlign.right,
             onChanged: (value) => setState(() => _query = value),
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               hintText: 'ابحث باسم السورة أو رقمها...',
-              prefixIcon: Icon(Icons.search),
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _query.isEmpty ? null : IconButton(
+                tooltip: 'مسح البحث',
+                icon: const Icon(Icons.clear),
+                onPressed: () {
+                  _searchController.clear();
+                  setState(() => _query = '');
+                },
+              ),
             ),
           ),
         ),
